@@ -1,0 +1,5 @@
+build
+.venv
+.mypy_cache
+*.md
+htmlcov
