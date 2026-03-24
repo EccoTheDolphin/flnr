@@ -1,0 +1,141 @@
+[project]
+name = "flnr"
+version = "0.1.0"
+description = "Python wrapper over process spawning facilities supporting monitoring and log capturing"
+readme = "readme.md"
+requires-python = ">=3.10"
+dependencies = [
+  # CLI tools.
+  "typer>=0.16.0", # Primary CLI engine.
+  "click>=8.1.7",  # Used for some typer tweaking.
+  "rich>=14.0.0",
+]
+
+[dependency-groups]
+dev = [
+  # pytest.
+  "pytest-asyncio>=1.2.0",
+  "pytest-cov>=7.0.0",
+  "pytest-profiling>=1.8.1",
+  "pytest-xdist>=3.8.0",
+  "pytest>=8.2.1",
+
+  # Linters.
+  "mdformat-config>=0.2.1",
+  "mdformat-ruff>=0.1.3",
+  "mdformat-shfmt>=0.2.0",
+  "mdformat-tables>=1.0.0",
+  "mdformat-toc>=0.3.0",
+  "mdformat-web>=0.2.0",
+  "mdformat>=0.7.22",
+  "mypy>=1.11.1",
+  "ruff>=0.15.2",
+  "typos>=1.44.0",
+  "yamllint>=1.35.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+flnr = "flnr._cli:app"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+addopts = [
+  "-n=5",
+  "--tb=short",
+  "--durations=50",
+  "--cov=src/",
+  "--cov-fail-under=90",
+  "--cov-report=html",
+  "--cov-report=term",
+]
+
+[tool.coverage.run]
+parallel = true
+patch = ["subprocess"]
+data_file = "build/coverage/.coverage"
+
+[tool.coverage.report]
+precision = 2
+
+[tool.ruff]
+line-length = 80
+
+[tool.ruff.lint]
+select = ["ALL"]
+
+ignore = [
+  # using assert to guide linter checks is perfectly fine.
+  "S101",
+  # warning: `one-blank-line-before-class` (D203) and
+  #          `no-blank-line-before-class`  (D211) are incompatible.
+  #          Ignoring `one-blank-line-before-class`.
+  "D203",
+  # warning: `multi-line-summary-first-line`  (D212) and
+  #          `multi-line-summary-second-line` (D213) are incompatible.
+  #          Ignoring `multi-line-summary-second-line`.
+  "D213",
+  # "Logging statement uses +"
+  # "Logging statement uses f-string"
+  # I personally don't find performance concerns reasonable enough.
+  "G003",
+  "G004",
+
+
+  # warning: The following rules may cause conflicts when used with the formatter: `COM812`, `ISC001`.
+  # COM812: Checks for the absence of trailing commas.
+  # ISC001: Checks for implicitly concatenated strings on a single line.
+  "COM812",
+  "ISC001",
+
+  # "Import alias does not rename original package."
+  # This is used to reexport symbols.
+  "PLC0414",
+  # I know that large number of arguments is not good and I don't need linter
+  # to remind me.
+  "PLR0913",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+  "S101",   # Allow asserts.
+  "INP001", # Suppress `__init__.py` warning in tests.
+  # "Missing docstring"
+  "D100",
+  "D101",
+  "D102",
+  "D103",
+  "D104",
+  "D107",
+]
+
+[tool.typos]
+# See https://github.com/crate-ci/typos/blob/master/docs/reference.md#example-configurations
+default.extend-ignore-re = [
+  "(?Rm)^.*(#|//|<!--)\\s*typos:\\s*ignore$",
+  "(?s)(#|//|<!--)\\s*typos:\\s*off.*?(#|//|<!--)\\s*typos:\\s*on",
+]
+default.extend-ignore-identifiers-re = [
+  "Raison",
+  "raison"
+]
+files.extend-exclude = ["*.sops.yaml"]
+
+[tool.mypy]
+strict = true
+exclude = [
+  '^result/', # Default `nix` output.
+]
+
+[tool.black] # The tool is not used in a project, this is only for IDE.
+line-length = 80
+
+[tool.isort] # The tool is not used in a project, this is only for IDE.
+profile = "black"
+line_length = 80
+skip_gitignore = true

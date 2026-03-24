@@ -1,0 +1,9 @@
+{
+  "reportArgumentType": "none",
+  "reportAssignmentType": "none",
+  "reportAttributeAccessIssue": "none",
+  "reportCallIssue": "none",
+  "reportMissingImports": "none",
+  "reportOptionalMemberAccess": "none",
+  "reportReturnType": "none"
+}
