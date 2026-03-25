@@ -5,10 +5,6 @@ description = "Python wrapper over process spawning facilities supporting monito
 readme = "readme.md"
 requires-python = ">=3.10"
 dependencies = [
-  # CLI tools.
-  "typer>=0.16.0", # Primary CLI engine.
-  "click>=8.1.7",  # Used for some typer tweaking.
-  "rich>=14.0.0",
 ]
 
 [dependency-groups]
@@ -32,6 +28,11 @@ dev = [
   "ruff>=0.15.2",
   "typos>=1.44.0",
   "yamllint>=1.35.1",
+
+  # dev env
+  "typer>=0.16.0", # Primary CLI engine.
+  "click>=8.1.7",  # Used for some typer tweaking.
+  "rich>=14.0.0",
 ]
 
 [build-system]
