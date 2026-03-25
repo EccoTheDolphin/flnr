@@ -1,33 +1,29 @@
-import re
+import sys
 from pathlib import Path
 
 import pytest
 
-
-@pytest.fixture(scope="session")
-def repo_path() -> Path:
-    return Path(__file__).parent.parent
+from tests.lib.utils import PythonCmdBuilder
 
 
 @pytest.fixture(scope="session")
-def test_files(repo_path: Path) -> Path:
-    return repo_path / "tests"
+def test_resources() -> Path:
+    """Return path to the resources directory."""
+    return Path(__file__).parent / "resources"
 
 
 @pytest.fixture(scope="session")
-def sync_path(repo_path: Path) -> Path:
-    return repo_path / "build" / "pytest"
+def py_exec(test_resources: Path) -> PythonCmdBuilder:
+    def _cmd(name: str | Path, *args: str | Path) -> list[str]:
+        str_args = [str(arg) for arg in args]
+        if isinstance(name, Path):
+            script_path = name
+        else:
+            script_path = test_resources / "exec" / name
+        return [
+            str(sys.executable),
+            str(script_path.resolve()),
+            *str_args,
+        ]
 
-
-@pytest.fixture(scope="session")
-def worker_idx(worker_id: str) -> int:
-    """Return index of current worker in pytest.
-
-    This is a bit fragile, since it relies on specific pytest-xdist worker
-    naming.
-    """
-    if worker_id == "master":
-        return 0
-    res = re.search(r"\d+$", worker_id)
-    assert res is not None
-    return int(res.group())
+    return _cmd
