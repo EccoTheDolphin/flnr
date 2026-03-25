@@ -494,9 +494,7 @@ def format_code(
     check_arg = ["--check"] if check else []
     diff_arg = ["--diff"] if check else []
     run_shell(["ruff", "format", *check_arg], cwd=_repo_path)
-    run_shell(
-        ["ruff", "check", "--fix", "--unsafe-fixes", *diff_arg], cwd=_repo_path
-    )
+    run_shell(["ruff", "check", "--fix", *diff_arg], cwd=_repo_path)
 
     run_shell(
         ["mdformat", *git_files(_repo_path, ".md"), *check_arg], cwd=_repo_path

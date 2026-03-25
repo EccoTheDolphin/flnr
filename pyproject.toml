@@ -103,6 +103,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401", "F403"]
 "tests/*" = [
   "S101",   # Allow asserts.
   "INP001", # Suppress `__init__.py` warning in tests.
