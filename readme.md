@@ -142,8 +142,9 @@ alternative if you're comfortable with something less lightweight.
 
 ## Development
 
-Development infrastructure is shamelessly borrowed
-from https://github.com/rudenkornk/python_experiments (by @rudenkornk).
+Development infrastructure is shamelessly borrowed from
+[python_experiments](https://github.com/rudenkornk/python_experiments)
+(by [rudenkornk](https://github.com/rudenkornk)).
 It facilitates a **uv**-based development workflow (I ditched the nix part,
 since it was overkill).
 
