@@ -88,7 +88,7 @@ import sys
 
 import flnr
 
-from typing import TextIO
+from typing import TextIO, Sequence
 
 
 class SystemMonitorForDemo(flnr.ProcessMonitor):
@@ -96,7 +96,7 @@ class SystemMonitorForDemo(flnr.ProcessMonitor):
         super().__init__(period=period)
         self.sink = sink
 
-    def on_start(self, pid: int, cmd: list[str]) -> None:
+    def on_start(self, pid: int, cmd: Sequence[str]) -> None:
         self.sink.write(f"on_start {pid} {cmd}\n")
 
     def observe(self, pid: int) -> None:
