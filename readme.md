@@ -36,13 +36,14 @@ The following example demonstrates running a shell command with custom output
 logging:
 
 ```python
-import flnr
 import io
 import os
 import sys
+import pathlib
 
+import flnr
 
-class CustomLogger(flnr.OutputMonitor):
+class CustomLoggerForDemo(flnr.OutputMonitor):
     """Custom implementation of output monitoring."""
 
     def __init__(self, *, file: io.IOBase) -> None:
@@ -50,23 +51,25 @@ class CustomLogger(flnr.OutputMonitor):
         self.file = file
 
     def process(self, data: bytes) -> None:
-        self.file.write(f"{len(data)}\n")
+        self.file.write(f"captured data length: {len(data)}\n")
 
 
 try:
     with (
-        open("/dev/null", "w") as null_file,
-        open("length.log", "w") as length_file,
+        pathlib.Path("/dev/null").open("w") as null_file,
+        pathlib.Path("data_length.log").open("w") as length_file,
     ):
         flnr.run_shell_ex(
             ["cat", "/dev/random"],
             env=os.environ.copy(),
             stdout_observers=[
-                flnr.LoggingOutputMonitor(file=sys.stdout, encoding="latin-1"),
+                flnr.LoggingOutputMonitor(
+                    file=sys.stdout, encoding="latin-1"
+                ),
                 flnr.LoggingOutputMonitor(
                     file=null_file, encoding="utf-8", auto_flush=True
                 ),
-                CustomLogger(file=length_file),
+                CustomLoggerForDemo(file=length_file),
             ],
             timeout=5.0,
             merge_std_streams=True,
@@ -80,35 +83,36 @@ except flnr.CommandFailedError as e:
 This example demonstrates how to set up a system monitor:
 
 ```python
-import flnr
 import io
 import os
+import sys
 
+import flnr
 
-class SystemMonitor(flnr.ProcessMonitor):
-    def __init__(self, *, file: io.IOBase) -> None:
-        super().__init__(period=1.0)
-        self.file = file
+class SystemMonitorForDemo(flnr.ProcessMonitor):
+    def __init__(self, *, sink: io.IOBase, period: float) -> None:
+        super().__init__(period=period)
+        self.sink = sink
 
     def on_start(self, pid: int, cmd: list[str]) -> None:
-        pass
+        self.sink.write(f"on_start {pid} {cmd}\n")
 
     def observe(self, pid: int) -> None:
-        # Here you can call your system monitoring scripts
-        pass
+        self.sink.write(f"observe, pid={pid}\n")
 
     def on_end(self, return_code: int, stop_info: str) -> None:
-        pass
+        self.sink.write(
+            f"on_end, return_code = {return_code}, info={stop_info}\n"
+        )
 
 
 try:
-    with open("sysmon.log", "w") as sysmon_file:
-        flnr.run_shell_ex(
-            ["cat", "/dev/random"],
-            env=os.environ.copy(),
-            timeout=5.0,
-            system_monitors=[SystemMonitor(file=sysmon_file)],
-        )
+    flnr.run_shell_ex(
+        ["cat", "/dev/random"],
+        env=os.environ.copy(),
+        timeout=5.0,
+        system_monitors=[SystemMonitorForDemo(sink=sys.stdout, period=1.0)],
+    )
 except flnr.CommandFailedError as e:
     print(f"{e}")
 ```
