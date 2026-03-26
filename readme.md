@@ -43,6 +43,7 @@ import pathlib
 
 import flnr
 
+
 class CustomLoggerForDemo(flnr.OutputMonitor):
     """Custom implementation of output monitoring."""
 
@@ -63,9 +64,7 @@ try:
             ["cat", "/dev/random"],
             env=os.environ.copy(),
             stdout_observers=[
-                flnr.LoggingOutputMonitor(
-                    file=sys.stdout, encoding="latin-1"
-                ),
+                flnr.LoggingOutputMonitor(file=sys.stdout, encoding="latin-1"),
                 flnr.LoggingOutputMonitor(
                     file=null_file, encoding="utf-8", auto_flush=True
                 ),
@@ -89,8 +88,11 @@ import sys
 
 import flnr
 
+from typing import TextIO
+
+
 class SystemMonitorForDemo(flnr.ProcessMonitor):
-    def __init__(self, *, sink: io.IOBase, period: float) -> None:
+    def __init__(self, *, sink: TextIO, period: float) -> None:
         super().__init__(period=period)
         self.sink = sink
 
