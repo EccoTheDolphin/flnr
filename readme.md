@@ -10,6 +10,7 @@
     - [Output monitoring](#output-monitoring)
     - [System monitoring](#system-monitoring)
   - [Raison d'être](#raison-d%C3%AAtre)
+  - [Alternatives](#alternatives)
   - [Development](#development)
     - [Using uv](#using-uv)
       - [Common Commands](#common-commands)
@@ -20,9 +21,9 @@
 
 ## About
 
-A lightweight wrapper around Python subprocesses that routes output to your
-logging system with callback hooks for monitoring - no complex observability
-stack required.
+**flnr** is a lightweight wrapper around Python subprocesses that routes output
+to your logging system with callback hooks for monitoring - no complex
+observability stack required.
 
 *Note: The library uses asyncio under the hood. User-supplied callbacks are
 expected to be synchronous (this limitation may be relaxed in the future).*
@@ -65,7 +66,7 @@ try:
                 flnr.LoggingOutputMonitor(
                     file=null_file, encoding="utf-8", auto_flush=True
                 ),
-                flnr.CustomLogger(file=length_file),
+                CustomLogger(file=length_file),
             ],
             timeout=5.0,
             merge_std_streams=True,
@@ -131,6 +132,13 @@ observability expertise - a luxury not every team has.
 
 This library fills the gap. It gives you a simple way to monitor subprocess
 behavior without wrestling with enterprise-grade solutions.
+
+## Alternatives
+
+The closest thing I could find is the [con-duct](https://github.com/con/duct)
+project. However, it seems tailored to specific usage scenarios, offering
+something closer to a complete monitoring solution. Still, it may be a viable
+alternative if you're comfortable with something less lightweight.
 
 ## Development
 
