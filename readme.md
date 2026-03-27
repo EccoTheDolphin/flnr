@@ -47,12 +47,12 @@ import flnr
 class CustomLoggerForDemo(flnr.OutputMonitor):
     """Custom implementation of output monitoring."""
 
-    def __init__(self, *, file: io.IOBase) -> None:
+    def __init__(self, *, sink: io.IOBase) -> None:
         super().__init__(line_proc=True)
-        self.file = file
+        self.sink = sink
 
     def process(self, data: bytes) -> None:
-        self.file.write(f"captured data length: {len(data)}\n")
+        self.sink.write(f"captured data length: {len(data)}\n")
 
 
 try:
@@ -62,13 +62,12 @@ try:
     ):
         flnr.run_shell_ex(
             ["cat", "/dev/random"],
-            env=os.environ.copy(),
             stdout_observers=[
-                flnr.LoggingOutputMonitor(file=sys.stdout, encoding="latin-1"),
+                flnr.LoggingOutputMonitor(sink=sys.stdout, encoding="latin-1"),
                 flnr.LoggingOutputMonitor(
-                    file=null_file, encoding="utf-8", auto_flush=True
+                    sink=null_file, encoding="utf-8", auto_flush=True
                 ),
-                CustomLoggerForDemo(file=length_file),
+                CustomLoggerForDemo(sink=length_file),
             ],
             timeout=5.0,
             merge_std_streams=True,
@@ -102,7 +101,9 @@ class SystemMonitorForDemo(flnr.ProcessMonitor):
     def observe(self, pid: int) -> None:
         self.sink.write(f"observe, pid={pid}\n")
 
-    def on_end(self, return_code: int, stop_info: str) -> None:
+    def on_end(
+        self, return_code: int, stop_info: flnr.ProcessTerminationReason
+    ) -> None:
         self.sink.write(
             f"on_end, return_code = {return_code}, info={stop_info}\n"
         )
@@ -111,7 +112,6 @@ class SystemMonitorForDemo(flnr.ProcessMonitor):
 try:
     flnr.run_shell_ex(
         ["cat", "/dev/random"],
-        env=os.environ.copy(),
         timeout=5.0,
         system_monitors=[SystemMonitorForDemo(sink=sys.stdout, period=1.0)],
     )
