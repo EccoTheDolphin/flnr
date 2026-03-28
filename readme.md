@@ -10,6 +10,7 @@
     - [Output monitoring](#output-monitoring)
     - [System monitoring](#system-monitoring)
   - [Raison d'être](#raison-d%C3%AAtre)
+  - [Limitations and Controversial Design Choices](#limitations-and-controversial-design-choices)
   - [Alternatives](#alternatives)
   - [Development](#development)
     - [Using uv](#using-uv)
@@ -25,8 +26,13 @@
 to your logging system with callback hooks for monitoring - no complex
 observability stack required.
 
-*Note: The library uses asyncio under the hood. User-supplied callbacks are
-expected to be synchronous (this limitation may be relaxed in the future).*
+> [!NOTE]
+> *Note: The library uses asyncio under the hood. User-supplied callbacks are
+> expected to be synchronous (this limitation may be relaxed in the future).*
+
+> [!WARNING]
+> The library is not designed to be used in an async context. Attempting to do
+> so will result in a `RuntimeError` being thrown from the main entry point.
 
 ## Examples
 
@@ -137,7 +143,38 @@ While a proper telemetry system would help, setting one up requires dedicated
 observability expertise - a luxury not every team has.
 
 This library fills the gap. It gives you a simple way to monitor subprocess
-behavior without wrestling with enterprise-grade solutions.
+behavior without wrestling with enterprise-grade solutions. It can greatly
+simplify cases where you need to automate running of scripts that you don't
+fully control.
+
+## Limitations and Controversial Design Choices
+
+- At the moment stdout/stderr are drained using `asyncio.StreamReader.readline`.
+  Bytes-based processing is not implemented. This implies that if your process
+  outputs lots of data without ever putting '\\n' in its output, output
+  monitoring facilities won't get invoked until EOF is encountered. Note that
+  if the file descriptor is propagated to a child, EOF may never be observed
+  and the associated reader task can be simply cancelled, resulting in a loss of
+  data. Also note that all output accumulates in an internal memory buffer, so
+  memory pressure can be significant.
+
+- Output observers are intended to be lightweight and fast. The intended usage model
+  is just to write data to a log file, possibly adding a timestamp. That's
+  it. Process monitors should not be called too often and generally should limit
+  themselves to something like calling `ps` or `sar` once every few minutes. If
+  you need something more complex, then this library is likely not the solution you need.
+
+- The library assumes that the exit code of the launched process is the main
+  result the user is interested in. It means that if some user-supplied monitor
+  fails, it will be simply disabled, allowing the process to run until the end.
+  When such failures are detected, they will be reported in a dedicated exception
+  `MonitorFailedError` along with the application exit code.
+
+- When the underlying process is terminated, the library assumes that all the
+  data that may be available on the respective stdout/stderr can be discarded
+  after a certain amount of time. This means that if there are orphaned processes
+  that still hold the respective file descriptors and write some data - this data
+  will be silently discarded.
 
 ## Alternatives
 
