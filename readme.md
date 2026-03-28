@@ -23,8 +23,8 @@
 ## About
 
 **flnr** is a lightweight wrapper around Python subprocesses that routes output
-to your logging system with callback hooks for monitoring - no complex
-observability stack required.
+to your logging system with callback hooks for monitoring, without requiring
+a full observability stack
 
 > [!NOTE]
 > *Note: The library uses asyncio under the hood. User-supplied callbacks are
@@ -96,7 +96,7 @@ import flnr
 from typing import TextIO, Sequence
 
 
-class SystemMonitorForDemo(flnr.ProcessMonitor):
+class ProcessMonitorForDemo(flnr.ProcessMonitor):
     def __init__(self, *, sink: TextIO, period: float) -> None:
         super().__init__(period=period)
         self.sink = sink
@@ -119,7 +119,7 @@ try:
     flnr.run_shell_ex(
         ["cat", "/dev/random"],
         timeout=5.0,
-        system_monitors=[SystemMonitorForDemo(sink=sys.stdout, period=1.0)],
+        process_monitors=[ProcessMonitorForDemo(sink=sys.stdout, period=1.0)],
     )
 except flnr.CommandFailedError as e:
     print(f"{e}")
@@ -155,8 +155,9 @@ fully control.
   monitoring facilities won't get invoked until EOF is encountered. Note that
   if the file descriptor is propagated to a child, EOF may never be observed
   and the associated reader task can be simply cancelled, resulting in a loss of
-  data. Also note that all output accumulates in an internal memory buffer, so
-  memory pressure can be significant.
+  data. Also not that if the subprocess produces large amounts of data without
+  newline characters, memory usage may grow unbounded because data is buffered
+  internally until a newline or EOF is encountered.
 
 - Output observers are intended to be lightweight and fast. The intended usage model
   is just to write data to a log file, possibly adding a timestamp. That's
@@ -197,7 +198,7 @@ since it was overkill).
 
 #### Common Commands
 
-```bash
+```
 uv run pytest
 uv run ./repo.py format
 uv run ./repo.py format --check
