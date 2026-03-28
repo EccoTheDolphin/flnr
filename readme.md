@@ -24,7 +24,7 @@
 
 **flnr** is a lightweight wrapper around Python subprocesses that routes output
 to your logging system with callback hooks for monitoring, without requiring
-a full observability stack
+a full observability stack.
 
 > [!NOTE]
 > *Note: The library uses asyncio under the hood. User-supplied callbacks are
@@ -177,6 +177,9 @@ fully control.
   that still hold the respective file descriptors and write some data - this data
   will be silently discarded.
 
+- The test suite is Linux-only. The library is expected to work on Windows,
+  but this hasn't been verified.
+
 ## Alternatives
 
 The closest thing I could find is the [con-duct](https://github.com/con/duct)
@@ -198,7 +201,7 @@ since it was overkill).
 
 #### Common Commands
 
-```
+```bash
 uv run pytest
 uv run ./repo.py format
 uv run ./repo.py format --check
