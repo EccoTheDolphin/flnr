@@ -155,7 +155,7 @@ fully control.
   monitoring facilities won't get invoked until EOF is encountered. Note that
   if the file descriptor is propagated to a child, EOF may never be observed
   and the associated reader task can be simply cancelled, resulting in a loss of
-  data. Also not that if the subprocess produces large amounts of data without
+  data. Also note that if the subprocess produces large amounts of data without
   newline characters, memory usage may grow unbounded because data is buffered
   internally until a newline or EOF is encountered.
 
