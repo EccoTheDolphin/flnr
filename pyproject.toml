@@ -60,6 +60,7 @@ addopts = [
 parallel = true
 patch = ["subprocess"]
 data_file = "build/coverage/.coverage"
+branch = true
 
 [tool.coverage.report]
 precision = 2
