@@ -54,7 +54,6 @@ class CustomLoggerForDemo(flnr.OutputMonitor):
     """Custom implementation of output monitoring."""
 
     def __init__(self, *, sink: io.IOBase) -> None:
-        super().__init__(line_proc=True)
         self.sink = sink
 
     def process(self, data: bytes) -> None:
@@ -75,7 +74,7 @@ try:
                 ),
                 CustomLoggerForDemo(sink=length_file),
             ],
-            timeout=5.0,
+            timeouts=flnr.ExecutionTimeouts(run=5.0),
             merge_std_streams=True,
         )
 except flnr.CommandFailedError as e:
@@ -118,7 +117,7 @@ class ProcessMonitorForDemo(flnr.ProcessMonitor):
 try:
     flnr.run_shell_ex(
         ["cat", "/dev/random"],
-        timeout=5.0,
+        timeouts=flnr.ExecutionTimeouts(run=5.0),
         process_monitors=[ProcessMonitorForDemo(sink=sys.stdout, period=1.0)],
     )
 except flnr.CommandFailedError as e:
@@ -149,33 +148,24 @@ fully control.
 
 ## Limitations and Controversial Design Choices
 
-- At the moment stdout/stderr are drained using `asyncio.StreamReader.readline`.
-  Bytes-based processing is not implemented. This implies that if your process
-  outputs lots of data without ever putting '\\n' in its output, output
-  monitoring facilities won't get invoked until EOF is encountered. Note that
-  if the file descriptor is propagated to a child, EOF may never be observed
-  and the associated reader task can be simply cancelled, resulting in a loss of
-  data. Also note that if the subprocess produces large amounts of data without
-  newline characters, memory usage may grow unbounded because data is buffered
-  internally until a newline or EOF is encountered.
-
-- Output observers are intended to be lightweight and fast. The intended usage model
-  is just to write data to a log file, possibly adding a timestamp. That's
-  it. Process monitors should not be called too often and generally should limit
-  themselves to something like calling `ps` or `sar` once every few minutes. If
-  you need something more complex, then this library is likely not the solution you need.
+- Output observers are intended to be lightweight and fast. The intended usage
+  model is just to write data to a log file, possibly adding a timestamp.
+  That's it. Process monitors should not be called too often and generally
+  should limit themselves to something like calling `ps` or `sar` once every
+  few minutes. If you need something more complex, then this library is likely
+  not the solution you need.
 
 - The library assumes that the exit code of the launched process is the main
   result the user is interested in. It means that if some user-supplied monitor
   fails, it will be simply disabled, allowing the process to run until the end.
-  When such failures are detected, they will be reported in a dedicated exception
-  `MonitorFailedError` along with the application exit code.
+  When such failures are detected, they will be reported in a dedicated
+  exception `MonitorFailedError` along with the application exit code.
 
 - When the underlying process is terminated, the library assumes that all the
   data that may be available on the respective stdout/stderr can be discarded
-  after a certain amount of time. This means that if there are orphaned processes
-  that still hold the respective file descriptors and write some data - this data
-  will be silently discarded.
+  after a certain amount of time. This means that if there are orphaned
+  processes that still hold the respective file descriptors and write some
+  data - this data will be silently discarded.
 
 - The test suite is Linux-only. The library is expected to work on Windows,
   but this hasn't been verified.
