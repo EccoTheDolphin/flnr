@@ -236,6 +236,7 @@ dev = [
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "pytest-profiling" },
+    { name = "pytest-resource-usage" },
     { name = "pytest-xdist" },
     { name = "rich" },
     { name = "ruff" },
@@ -261,6 +262,7 @@ dev = [
     { name = "pytest-asyncio", specifier = ">=1.2.0" },
     { name = "pytest-cov", specifier = ">=7.0.0" },
     { name = "pytest-profiling", specifier = ">=1.8.1" },
+    { name = "pytest-resource-usage", specifier = ">=1.0.0" },
     { name = "pytest-xdist", specifier = ">=3.8.0" },
     { name = "rich", specifier = ">=14.0.0" },
     { name = "ruff", specifier = ">=0.15.2" },
@@ -646,6 +648,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/44/74/806cafd6f2108d37979ec71e73b2ff7f7db88eabd19d3b79c5d6cc229c36/pytest-profiling-1.8.1.tar.gz", hash = "sha256:3f171fa69d5c82fa9aab76d66abd5f59da69135c37d6ae5bf7557f1b154cb08d", size = 33135, upload-time = "2024-11-29T19:34:13.85Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e3/ac/c428c66241a144617a8af7a28e2e055e1438d23b949b62ac4b401a69fb79/pytest_profiling-1.8.1-py3-none-any.whl", hash = "sha256:3dd8713a96298b42d83de8f5951df3ada3e61b3e5d2a06956684175529e17aea", size = 9929, upload-time = "2024-11-29T19:33:02.111Z" },
+]
+
+[[package]]
+name = "pytest-resource-usage"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pytest" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/06/45/596537d11af41c8e11662b9c237cbdebcca30fb4d7fd189bfd772ac1835c/pytest-resource-usage-1.0.0.tar.gz", hash = "sha256:3a200cee007fc3e7496ff34620b2841494356c92063aa6fa79e9201fd1e583cc", size = 5565, upload-time = "2022-11-06T15:20:43.965Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ee/0c/59bd48065714caa13caaeea82a458934b260c833e90057dfa93d5c8ffabc/pytest_resource_usage-1.0.0-py3-none-any.whl", hash = "sha256:94534f378c13ccdf1413d461f0d780ff2cebf45f07de1622d6e1c07f0a86154b", size = 7490, upload-time = "2022-11-06T15:20:35.837Z" },
 ]
 
 [[package]]
