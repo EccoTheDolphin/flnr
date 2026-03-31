@@ -167,8 +167,8 @@ fully control.
   processes that still hold the respective file descriptors and write some
   data - this data will be silently discarded.
 
-- The test suite is Linux-only. The library is expected to work on Windows,
-  but this hasn't been verified.
+- The library is expected to work on Windows, but this hasn't been verified in
+  CI.
 
 ## Alternatives
 
