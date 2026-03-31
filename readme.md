@@ -167,9 +167,6 @@ fully control.
   processes that still hold the respective file descriptors and write some
   data - this data will be silently discarded.
 
-- The library is expected to work on Windows, but this hasn't been verified in
-  CI.
-
 ## Alternatives
 
 The closest thing I could find is the [con-duct](https://github.com/con/duct)
