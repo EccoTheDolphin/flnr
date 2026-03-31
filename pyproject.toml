@@ -116,6 +116,7 @@ ignore = [
   "D104",
   "D107",
   "T201", # Allow print in tests
+  "FBT001", # Allow bool in tests
 ]
 
 [tool.typos]
