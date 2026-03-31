@@ -68,8 +68,8 @@ try:
         flnr.run_shell_ex(
             ["cat", "/dev/random"],
             stdout_observers=[
-                flnr.LoggingOutputMonitor(sink=sys.stdout, encoding="latin-1"),
-                flnr.LoggingOutputMonitor(
+                flnr.TextOutputMonitor(sink=sys.stdout, encoding="latin-1"),
+                flnr.TextOutputMonitor(
                     sink=null_file, encoding="utf-8", auto_flush=True
                 ),
                 CustomLoggerForDemo(sink=length_file),
