@@ -27,6 +27,14 @@ jobs:
       - uses: astral-sh/setup-uv@5a095e7a2014a4212f075830d4f7277575a9d098 # v7.3.1
       - run: uv run --frozen pytest
 
+
+  uv-test-windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: astral-sh/setup-uv@5a095e7a2014a4212f075830d4f7277575a9d098 # v7.3.1
+      - run: uv run --frozen --python 3.14 pytest -v
+
 name: flnr_workflow
 
 on:
