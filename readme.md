@@ -6,11 +6,11 @@
 
 - [`flnr`](#flnr)
   - [About](#about)
+  - [Raison d'être](#raison-d%C3%AAtre)
   - [Examples](#examples)
     - [Output monitoring](#output-monitoring)
     - [System monitoring](#system-monitoring)
-  - [Raison d'être](#raison-d%C3%AAtre)
-  - [Limitations and Controversial Design Choices](#limitations-and-controversial-design-choices)
+  - [Usage Notes](#usage-notes)
   - [Alternatives](#alternatives)
   - [Development](#development)
     - [Using uv](#using-uv)
@@ -35,6 +35,41 @@ a full observability stack.
 > The library is not designed to be used from within an existing async context.
 > Calling `run_shell_ex` creates its own event loop and blocks the caller.
 > Attempting to use the library from an async context raises `RuntimeError`.
+
+## Raison d'être
+
+If you have a test suite that:
+
+- Runs in CI
+- Spawns subprocesses (databases, servers, batch jobs)
+- Fails sporadically with no clear reason
+- Has no observability infrastructure
+
+**Then read on.**
+
+This library lets you wrap your subprocess call, capture all output with
+timestamps, monitor system stats, and get the evidence you need to figure out
+why the test failed.
+
+When testing a complex software stack, a common pattern emerges:
+
+- A testsuite ships with its own testing infrastructure
+- You integrate it into your automation pipelines. This typically results in a
+  subprocess being spawned by your automation harness.
+- Some tests fail sporadically - either due to software bugs or infrastructure
+  issues.
+
+Debugging infrastructure problems is difficult, especially in complex
+environments where **Dark And Evil** monsters like the Dreaded Kubernetes roam
+the field.
+
+While a proper telemetry system would help, setting one up requires dedicated
+observability expertise - a luxury not every team has.
+
+This library fills the gap. It gives you a simple way to monitor subprocess
+behavior without wrestling with enterprise-grade solutions. It can greatly
+simplify debugging cases where you automate running of scripts that you don't
+fully control.
 
 ## Examples
 
@@ -137,48 +172,25 @@ except flnr.CommandFailedError as e:
     print(f"{e}")
 ```
 
-## Raison d'être
+## Usage Notes
 
-When testing a complex software stack, a common pattern emerges:
+- **Always set a run timeout**. If a monitor crashes, we disable it and keep
+  the subprocess running. You get a `MonitorFailedError` after the process
+  exits. Without one, a stuck subprocess will hide monitor errors indefinitely.
+  The timeout guarantees you eventually see what failed.
 
-- A testsuite ships with its own testing infrastructure
-- You integrate it into your automation pipelines. This typically results in a
-  subprocess being spawned by your automation harness.
-- Some tests fail sporadically - either due to software bugs or infrastructure
-  issues.
-
-Debugging infrastructure problems is difficult, especially in complex
-environments where **Dark And Evil** monsters like the Dreaded Kubernetes roam
-the field.
-
-While a proper telemetry system would help, setting one up requires dedicated
-observability expertise - a luxury not every team has.
-
-This library fills the gap. It gives you a simple way to monitor subprocess
-behavior without wrestling with enterprise-grade solutions. It can greatly
-simplify cases where you need to automate running of scripts that you don't
-fully control.
-
-## Limitations and Controversial Design Choices
-
-- Output observers are intended to be lightweight and fast. The intended usage
-  model is just to write data to a log file, possibly adding a timestamp.
+- **Output observers needs to be lightweight and fast**. The intended
+  usage model is just to write data to a log file, possibly adding a timestamp.
   That's it. Process monitors should not run too frequently and should
   generally limit themselves to lightweight checks (e.g., calling `ps` or `sar`
   every few minutes). If you need something more complex, then this library is
   likely not the solution you need.
 
-- The library assumes that the exit code of the launched process is the main
-  result the user is interested in. It means that if some user-supplied monitor
-  fails, it will be simply disabled, allowing the process to run until the end.
-  When such failures are detected, they will be reported in a dedicated
-  exception `MonitorFailedError` along with the application exit code.
-
-- When the underlying process is terminated, the library assumes that all the
-  data that may be available on the respective stdout/stderr can be discarded
-  after a configurable amount of time. For example, in cases where orphaned
-  processes still hold the respective file descriptors and continue writing
-  data, that data will be silently discarded.
+- **Set `output_drain` high enough**. After the process exits, we wait this
+  many seconds for remaining output, then close the pipes. This can result
+  in data loss. For example, in cases where orphaned processes still hold the
+  respective file descriptors and continue writing data, that data will be
+  gone.
 
 - Output buffering on the subprocess side is highly environment-dependent and
   not always predictable. For example, programs may switch between
