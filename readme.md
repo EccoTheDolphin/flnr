@@ -72,6 +72,13 @@ behavior without wrestling with enterprise-grade solutions. It can greatly
 simplify debugging cases where you automate running of scripts that you don't
 fully control.
 
+> [!NOTE]
+> The implementatinon can be summarized as follows:
+> A single-threaded, synchronous, cooperative subprocess runner
+> where user code runs inline and can stall the entire system by design
+
+This is what it is. You can take it or leave.
+
 ## Examples
 
 ### Output monitoring
@@ -180,13 +187,14 @@ except flnr.CommandFailedError as e:
   exits. Without one, a stuck subprocess will hide monitor errors indefinitely.
   The timeout guarantees you eventually see what failed.
 
-- **Output monitors must be lightweight and fast**. Output monitors run in
-  the same thread as the reading loop. If a monitor blocks, it stalls the
-  subprocess. The intended usage model is just to write data to a log file,
-  possibly adding a timestamp. That's it. Process monitors should not run too
-  frequently and should generally limit themselves to lightweight checks (e.g.,
-  calling `ps` or `sar` every few minutes). If you need something more
-  complex, then this library is likely not the solution you need.
+- **When your monitor blocks, everything stops. There is no isolation.**.
+  Output monitors run in the same thread as the reading loop. If a monitor
+  blocks, this can stall the subprocess. The intended usage model is just to
+  write data to a log file, possibly adding a timestamp. That's it. Process
+  monitors should not run too frequently and should generally limit themselves
+  to lightweight checks (e.g., calling `ps` or `sar` every few minutes). If you
+  need something more complex, then this library is likely not the solution you
+  need.
 
 - **Set `output_drain` high enough**. After the process exits, we wait this
   many seconds for remaining output, then close the pipes. This can result
