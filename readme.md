@@ -27,12 +27,14 @@ to your logging system with callback hooks for monitoring, without requiring
 a full observability stack.
 
 > [!NOTE]
-> *Note: The library uses asyncio under the hood. User-supplied callbacks are
-> expected to be synchronous (this limitation may be relaxed in the future).*
+> \*Note: The library uses asyncio under the hood. User-supplied callbacks are
+> expected to be synchronous. Usage of asyncio is an implementation detail and
+> users should not rely on its usage in future versions of the library.
 
 > [!WARNING]
-> The library is not designed to be used in an async context. Attempting to do
-> so will result in a `RuntimeError` being thrown from the main entry point.
+> The library is not designed to be used from within an existing async context.
+> Calling `run_shell_ex` creates its own event loop and blocks the caller.
+> Attempting to use the library from an async context raises `RuntimeError`.
 
 ## Examples
 
@@ -47,32 +49,43 @@ import os
 import sys
 import pathlib
 
+from datetime import datetime
 import flnr
 
 
-class CustomLoggerForDemo(flnr.OutputMonitor):
-    """Custom implementation of output monitoring."""
-
+class ThroughputMonitor(flnr.OutputMonitor):
     def __init__(self, *, sink: io.IOBase) -> None:
         self.sink = sink
+        self.bytes_received = 0
 
     def process(self, data: bytes) -> None:
-        self.sink.write(f"captured data length: {len(data)}\n")
+        self.bytes_received += len(data)
+        self.sink.write(f"{self.bytes_received} bytes\n".encode("latin-1"))
+
+
+class TimestampingMonitor(flnr.OutputMonitor):
+    def __init__(self, *, sink: io.IOBase) -> None:
+        self.sink = sink
+        self.ils = flnr.IncrementalLineSplitter()
+
+    def process(self, data: bytes) -> None:
+        for line in self.ils.feed(data):
+            timestamp = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
+            self.sink.write(timestamp.encode("latin-1"))
+            self.sink.write(b" ")
+            self.sink.write(line)
 
 
 try:
     with (
-        pathlib.Path("/dev/null").open("w") as null_file,
-        pathlib.Path("data_length.log").open("w") as length_file,
+        pathlib.Path("throughput.log").open("wb") as throughput_log,
+        pathlib.Path("timestamped.bin").open("wb") as timestamped_output,
     ):
         flnr.run_shell_ex(
             ["cat", "/dev/random"],
             stdout_observers=[
-                flnr.TextOutputMonitor(sink=sys.stdout, encoding="latin-1"),
-                flnr.TextOutputMonitor(
-                    sink=null_file, encoding="utf-8", auto_flush=True
-                ),
-                CustomLoggerForDemo(sink=length_file),
+                ThroughputMonitor(sink=throughput_log),
+                TimestampingMonitor(sink=timestamped_output),
             ],
             timeouts=flnr.ExecutionTimeouts(run=5.0),
             merge_std_streams=True,
@@ -126,11 +139,11 @@ except flnr.CommandFailedError as e:
 
 ## Raison d'être
 
-When testing complex programs like GDB, a common pattern emerges:
+When testing a complex software stack, a common pattern emerges:
 
 - A testsuite ships with its own testing infrastructure
-- You integrate it into your automation pipelines. Typical integration results
-  in a subprocess being spawned by your automation harness.
+- You integrate it into your automation pipelines. This typically results in a
+  subprocess being spawned by your automation harness.
 - Some tests fail sporadically - either due to software bugs or infrastructure
   issues.
 
@@ -150,10 +163,10 @@ fully control.
 
 - Output observers are intended to be lightweight and fast. The intended usage
   model is just to write data to a log file, possibly adding a timestamp.
-  That's it. Process monitors should not be called too often and generally
-  should limit themselves to something like calling `ps` or `sar` once every
-  few minutes. If you need something more complex, then this library is likely
-  not the solution you need.
+  That's it. Process monitors should not run too frequently and should
+  generally limit themselves to lightweight checks (e.g., calling `ps` or `sar`
+  every few minutes). If you need something more complex, then this library is
+  likely not the solution you need.
 
 - The library assumes that the exit code of the launched process is the main
   result the user is interested in. It means that if some user-supplied monitor
@@ -163,9 +176,17 @@ fully control.
 
 - When the underlying process is terminated, the library assumes that all the
   data that may be available on the respective stdout/stderr can be discarded
-  after a certain amount of time. This means that if there are orphaned
-  processes that still hold the respective file descriptors and write some
-  data - this data will be silently discarded.
+  after a configurable amount of time. For example, in cases where orphaned
+  processes still hold the respective file descriptors and continue writing
+  data, that data will be silently discarded.
+
+- Output buffering on the subprocess side is highly environment-dependent and
+  not always predictable. For example, programs may switch between
+  line-buffered, block-buffered, or unbuffered modes depending on whether
+  stdout is connected to a TTY or a pipe. This directly affects how quickly
+  data reaches output observers.
+  At the moment, users of the library have no real control over this behavior.
+  See [issue #5](https://github.com/EccoTheDolphin/flnr/issues/5) for details.
 
 ## Alternatives
 
