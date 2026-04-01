@@ -11,6 +11,7 @@
     - [Output monitoring](#output-monitoring)
     - [System monitoring](#system-monitoring)
   - [Usage Notes](#usage-notes)
+  - [Requirements](#requirements)
   - [Alternatives](#alternatives)
   - [Development](#development)
     - [Using uv](#using-uv)
@@ -200,6 +201,10 @@ except flnr.CommandFailedError as e:
   data reaches output monitors.
   At the moment, users of the library have no real control over this behavior.
   See [issue #5](https://github.com/EccoTheDolphin/flnr/issues/5) for details.
+
+## Requirements
+
+- Python 3.10 and above
 
 ## Alternatives
 
