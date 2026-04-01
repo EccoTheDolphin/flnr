@@ -27,7 +27,7 @@ to your logging system with callback hooks for monitoring, without requiring
 a full observability stack.
 
 > [!NOTE]
-> \*Note: The library uses asyncio under the hood. User-supplied callbacks are
+> The library uses asyncio under the hood. User-supplied callbacks are
 > expected to be synchronous. Usage of asyncio is an implementation detail and
 > users should not rely on its usage in future versions of the library.
 
