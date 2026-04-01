@@ -179,12 +179,13 @@ except flnr.CommandFailedError as e:
   exits. Without one, a stuck subprocess will hide monitor errors indefinitely.
   The timeout guarantees you eventually see what failed.
 
-- **Output observers needs to be lightweight and fast**. The intended
-  usage model is just to write data to a log file, possibly adding a timestamp.
-  That's it. Process monitors should not run too frequently and should
-  generally limit themselves to lightweight checks (e.g., calling `ps` or `sar`
-  every few minutes). If you need something more complex, then this library is
-  likely not the solution you need.
+- **Output monitors must be lightweight and fast**. Output monitors run in
+  the same thread as the reading loop. If a monitor blocks, it stalls the
+  subprocess. The intended usage model is just to write data to a log file,
+  possibly adding a timestamp. That's it. Process monitors should not run too
+  frequently and should generally limit themselves to lightweight checks (e.g.,
+  calling `ps` or `sar` every few minutes). If you need something more
+  complex, then this library is likely not the solution you need.
 
 - **Set `output_drain` high enough**. After the process exits, we wait this
   many seconds for remaining output, then close the pipes. This can result
@@ -196,7 +197,7 @@ except flnr.CommandFailedError as e:
   not always predictable. For example, programs may switch between
   line-buffered, block-buffered, or unbuffered modes depending on whether
   stdout is connected to a TTY or a pipe. This directly affects how quickly
-  data reaches output observers.
+  data reaches output monitors.
   At the moment, users of the library have no real control over this behavior.
   See [issue #5](https://github.com/EccoTheDolphin/flnr/issues/5) for details.
 
