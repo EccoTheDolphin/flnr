@@ -110,6 +110,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = [
   "S101",   # Allow asserts.
+  "S311", # we no crypto in our hood
   "INP001", # Suppress `__init__.py` warning in tests.
   # "Missing docstring"
   "D100",
