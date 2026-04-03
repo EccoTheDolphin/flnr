@@ -24,8 +24,9 @@
 
 ## About
 
-**flnr** is a minimal framework that takes control of process execution and
-calls your code while streaming its output.
+**flnr** is a minimal framework for executing external programs as child
+processes, streaming their output to user-defined callbacks while handling
+lifecycle and error propagation.
 
 > [!NOTE]
 > The library uses asyncio under the hood. User-supplied callbacks are
@@ -36,9 +37,6 @@ calls your code while streaming its output.
 > `flnr` is **not** designed for use inside an existing async context.
 > Calling `run_shell_ex` creates its own event loop and blocks the caller. Using
 > it from an async context raises `RuntimeError`.
-
-`flnr` provides the provides scaffolding for wrapping external process
-execution, while handling output flow and error propagation.
 
 Design principles:
 
