@@ -8,6 +8,7 @@
   - [About](#about)
   - [Raison d'être](#raison-d%C3%AAtre)
   - [Examples](#examples)
+    - [Minimal usage](#minimal-usage)
     - [Output monitoring](#output-monitoring)
     - [System monitoring](#system-monitoring)
   - [Usage Notes](#usage-notes)
@@ -23,9 +24,8 @@
 
 ## About
 
-**flnr** is a lightweight wrapper around Python subprocesses that routes output
-to your logging system with callback hooks for monitoring, without requiring
-a full observability stack.
+**flnr** is a minimal framework that takes control of process execution and
+calls your code while streaming its output.
 
 > [!NOTE]
 > The library uses asyncio under the hood. User-supplied callbacks are
@@ -33,62 +33,69 @@ a full observability stack.
 > users should not rely on its usage in future versions of the library.
 
 > [!WARNING]
-> The library is not designed to be used from within an existing async context.
-> Calling `run_shell_ex` creates its own event loop and blocks the caller.
-> Attempting to use the library from an async context raises `RuntimeError`.
+> `flnr` is **not** designed for use inside an existing async context.
+> Calling `run_shell_ex` creates its own event loop and blocks the caller. Using
+> it from an async context raises `RuntimeError`.
+
+Design principles:
+
+- Single‑threaded, blocking
+- User monitors execute synchronously in the same execution context as output
+  processing. **no isolation** is provided.
+
+Monitors are invoked as data is read from the child process. If a monitor
+blocks, the child process can stall. If you need concurrency or isolation, this
+tool is not a good fit.
 
 ## Raison d'être
 
 If you have a test suite that:
 
 - Runs in CI
-- Spawns subprocesses (databases, servers, batch jobs)
+- Launches external programs as child processes
 - Fails sporadically with no clear reason
-- Has no observability infrastructure
 
-**Then read on.**
+…and observability is a luxury you don't have, **read on**.
 
-This library lets you wrap your subprocess call, capture all output with
-timestamps, monitor system stats, and get the evidence you need to figure out
-why the test failed.
+`flnr` provides the **scaffolding** to wrap an external process call and hook
+into its output and lifecycle. You supply the monitoring logic - timestamps,
+system stats, whatever you need. The library handles execution, output
+streaming, and error propagation.
 
-When testing a complex software stack, a common pattern emerges:
-
-- A testsuite ships with its own testing infrastructure
-- You integrate it into your automation pipelines. This typically results in a
-  subprocess being spawned by your automation harness.
-- Some tests fail sporadically - either due to software bugs or infrastructure
-  issues.
+This becomes useful when integrating third‑party tools or test suites into your
+automation pipeline. They run as child processes, fail intermittently, and
+provide little insight into why.
 
 Debugging infrastructure problems is difficult, especially in complex
-environments where **Dark And Evil** monsters like the Dreaded Kubernetes roam
-the field.
-
-While a proper telemetry system would help, setting one up requires dedicated
-observability expertise - a luxury not every team has.
-
-This library fills the gap. It gives you a simple way to monitor subprocess
-behavior without wrestling with enterprise-grade solutions. It can greatly
-simplify debugging cases where you automate running of scripts that you don't
-fully control.
+environments where Dark And Evil monsters like the Dreaded Kubernetes roam the
+field. `flnr` gives you just enough visibility to understand what happened -
+without building or adopting a full observability stack.
 
 > [!NOTE]
-> The implementatinon can be summarized as follows:
-> A single-threaded, synchronous, cooperative subprocess runner
-> where user code runs inline and can stall the entire system by design
-
-This is what it is. You can take it or leave.
+> The implementation is a single‑threaded, synchronous, cooperative subprocess
+> runner where user code runs inline and can stall the entire system by design.
+> This is what it is. Take it or leave it.
 
 ## Examples
 
+### Minimal usage
+
+```python
+import flnr
+
+flnr.run_shell_ex(
+    ["echo", "hello"],
+    timeouts=flnr.ExecutionTimeouts(run=5.0),
+)
+```
+
 ### Output monitoring
 
-The following example demonstrates running a shell command with custom output
-logging:
+Runs an external command with two output monitors: one tracks throughput,
+another adds timestamps to each line.
 
 ```python
 import io
-import os
 import sys
 import pathlib
 
@@ -139,11 +146,10 @@ except flnr.CommandFailedError as e:
 
 ### System monitoring
 
-This example demonstrates how to set up a system monitor:
+A process monitor that hooks into the child process lifecycle. Extend
+`observe()` to collect system stats (e.g., via ps, /proc, or psutil).
 
 ```python
-import io
-import os
 import sys
 
 import flnr
@@ -183,13 +189,13 @@ except flnr.CommandFailedError as e:
 ## Usage Notes
 
 - **Always set a run timeout**. If a monitor crashes, we disable it and keep
-  the subprocess running. You get a `MonitorFailedError` after the process
-  exits. Without one, a stuck subprocess will hide monitor errors indefinitely.
-  The timeout guarantees you eventually see what failed.
+  the child process running. You get a `MonitorFailedError` after the process
+  exits. Without one, a stuck child process can hide monitor errors
+  indefinitely. The timeout guarantees you eventually see what failed.
 
-- **When your monitor blocks, everything stops. There is no isolation.**.
+- **When your monitor blocks, everything stops. There is no isolation.**
   Output monitors run in the same thread as the reading loop. If a monitor
-  blocks, this can stall the subprocess. The intended usage model is just to
+  blocks, this can stall the child process. The intended usage model is just to
   write data to a log file, possibly adding a timestamp. That's it. Process
   monitors should not run too frequently and should generally limit themselves
   to lightweight checks (e.g., calling `ps` or `sar` every few minutes). If you
@@ -202,7 +208,7 @@ except flnr.CommandFailedError as e:
   respective file descriptors and continue writing data, that data will be
   gone.
 
-- Output buffering on the subprocess side is highly environment-dependent and
+- Output buffering on the child process side is highly environment-dependent and
   not always predictable. For example, programs may switch between
   line-buffered, block-buffered, or unbuffered modes depending on whether
   stdout is connected to a TTY or a pipe. This directly affects how quickly
@@ -217,9 +223,8 @@ except flnr.CommandFailedError as e:
 ## Alternatives
 
 The closest thing I could find is the [con-duct](https://github.com/con/duct)
-project. However, it seems tailored to specific usage scenarios, offering
-something closer to a complete monitoring solution. Still, it may be a viable
-alternative if you're comfortable with something less lightweight.
+project. It is closer to a full monitoring solution, while `flnr` focuses on
+being minimal and embedding directly into existing workflows.
 
 ## Development
 
