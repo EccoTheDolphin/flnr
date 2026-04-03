@@ -25,8 +25,13 @@
 ## About
 
 **flnr** is a minimal framework for executing external programs as child
-processes, streaming their output to user-defined callbacks while handling
-lifecycle and error propagation.
+processes. It streams output to user-defined callbacks, supports process
+monitoring via callbacks, and manages process lifecycle and error propagation.
+
+It supports two types of callbacks:
+
+- **Output monitors** - process data as it is read from the child process.
+- **Process monitors** - observe system state during the child process lifetime.
 
 > [!NOTE]
 > The library uses asyncio under the hood. User-supplied callbacks are
@@ -46,6 +51,9 @@ Design principles:
 
 Monitors are invoked as data is read from the child process. If you need
 concurrency or isolation, this tool is not a good fit.
+
+Monitors are intended to be observational only. This is a usage convention, not
+a constraint enforced by the library, and users are expected to follow it.
 
 ## Raison d'être
 
