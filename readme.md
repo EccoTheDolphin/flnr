@@ -37,15 +37,17 @@ calls your code while streaming its output.
 > Calling `run_shell_ex` creates its own event loop and blocks the caller. Using
 > it from an async context raises `RuntimeError`.
 
+`flnr` provides the provides scaffolding for wrapping external process
+execution, while handling output flow and error propagation.
+
 Design principles:
 
 - Single‑threaded, blocking
-- User monitors execute synchronously in the same execution context as output
+- monitoring logic executes synchronously in the same execution context as output
   processing. **no isolation** is provided.
 
-Monitors are invoked as data is read from the child process. If a monitor
-blocks, the child process can stall. If you need concurrency or isolation, this
-tool is not a good fit.
+Monitors are invoked as data is read from the child process. If you need
+concurrency or isolation, this tool is not a good fit.
 
 ## Raison d'être
 
@@ -53,23 +55,19 @@ If you have a test suite that:
 
 - Runs in CI
 - Launches external programs as child processes
-- Fails sporadically with no clear reason
+- Fails sporadically and provides little insight into why
 
 …and observability is a luxury you don't have, **read on**.
 
-`flnr` provides the **scaffolding** to wrap an external process call and hook
-into its output and lifecycle. You supply the monitoring logic - timestamps,
-system stats, whatever you need. The library handles execution, output
-streaming, and error propagation.
+The pattern above is a typical situation when integrating third‑party tools or
+test suites into your automation pipeline.
 
-This becomes useful when integrating third‑party tools or test suites into your
-automation pipeline. They run as child processes, fail intermittently, and
-provide little insight into why.
-
-Debugging infrastructure problems is difficult, especially in complex
-environments where Dark And Evil monsters like the Dreaded Kubernetes roam the
-field. `flnr` gives you just enough visibility to understand what happened -
-without building or adopting a full observability stack.
+Debugging sporadic failures is difficult, especially in complex environments
+where failures can originate from tests, the product under test, or the
+surrounding infrastructure—where Dark And Evil monsters like the Dreaded
+Kubernetes roam the field. `flnr` gives you just enough visibility to
+understand what happened - without building or adopting a full observability
+stack.
 
 > [!NOTE]
 > The implementation is a single‑threaded, synchronous, cooperative subprocess
@@ -193,14 +191,13 @@ except flnr.CommandFailedError as e:
   exits. Without one, a stuck child process can hide monitor errors
   indefinitely. The timeout guarantees you eventually see what failed.
 
-- **When your monitor blocks, everything stops. There is no isolation.**
-  Output monitors run in the same thread as the reading loop. If a monitor
-  blocks, this can stall the child process. The intended usage model is just to
-  write data to a log file, possibly adding a timestamp. That's it. Process
-  monitors should not run too frequently and should generally limit themselves
-  to lightweight checks (e.g., calling `ps` or `sar` every few minutes). If you
-  need something more complex, then this library is likely not the solution you
-  need.
+- **If a monitor blocks, the entire system stops**. Monitors run in the same
+  execution context as output processing. It may and will stall the child
+  process. The intended usage model is just to write data to a log file,
+  possibly adding a timestamp. That's it. Process monitors should not run too
+  frequently and should generally limit themselves to lightweight checks
+  (e.g., calling `ps` or `sar` every few minutes). If you need something more
+  complex, then this library is likely not the solution you need.
 
 - **Set `output_drain` high enough**. After the process exits, we wait this
   many seconds for remaining output, then close the pipes. This can result
@@ -208,12 +205,11 @@ except flnr.CommandFailedError as e:
   respective file descriptors and continue writing data, that data will be
   gone.
 
-- Output buffering on the child process side is highly environment-dependent and
-  not always predictable. For example, programs may switch between
-  line-buffered, block-buffered, or unbuffered modes depending on whether
-  stdout is connected to a TTY or a pipe. This directly affects how quickly
-  data reaches output monitors.
-  At the moment, users of the library have no real control over this behavior.
+- Output buffering is environment-dependent and unpredictable, and users
+  currently have no control over this behavior. For example, programs may
+  switch between line-buffered, block-buffered, or unbuffered modes depending
+  on whether stdout is connected to a TTY or a pipe. This directly affects how
+  quickly data reaches output monitors.
   See [issue #5](https://github.com/EccoTheDolphin/flnr/issues/5) for details.
 
 ## Requirements
