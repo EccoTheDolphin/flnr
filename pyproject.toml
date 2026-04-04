@@ -34,6 +34,9 @@ dev = [
   "rich>=14.0.0",
   "sphinx>=8.1.3",
   "sphinx-rtd-theme>=3.1.0",
+  "sphinx-autodoc-typehints>=2.0.0",
+  # furry
+  "furo>=2025.12.19",
 ]
 
 [build-system]
@@ -71,6 +74,7 @@ precision = 2
 
 [tool.ruff]
 line-length = 80
+exclude = ["docs"]
 
 [tool.ruff.lint]
 select = ["ALL"]
@@ -139,6 +143,7 @@ files.extend-exclude = ["*.sops.yaml"]
 strict = true
 exclude = [
   '^result/', # Default `nix` output.
+  '^docs/', # don't scan sphinx configs
 ]
 
 [tool.black] # The tool is not used in a project, this is only for IDE.
