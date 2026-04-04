@@ -27,9 +27,15 @@ jobs:
       - run: uv run --frozen ./repo.py format --check
       - run: uv run --frozen ./repo.py lint
 
+  uv-test-extra:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: astral-sh/setup-uv@5a095e7a2014a4212f075830d4f7277575a9d098 # v7.3.1
+      - run: uv run --frozen pytest -m extra --no-cov
+
   uv-test:
     runs-on: ubuntu-24.04
-    if: false
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - uses: astral-sh/setup-uv@5a095e7a2014a4212f075830d4f7277575a9d098 # v7.3.1
@@ -38,7 +44,6 @@ jobs:
 
   uv-test-windows:
     runs-on: windows-2022
-    if: false
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - uses: astral-sh/setup-uv@5a095e7a2014a4212f075830d4f7277575a9d098 # v7.3.1
