@@ -1,0 +1,214 @@
+import io
+import os
+from collections.abc import Sequence
+from pathlib import Path
+
+import pytest
+
+import flnr
+from tests.lib.utils import (
+    PythonCmdBuilder,
+    TextOutputMonitor,
+    return_code_for_sigterm,
+)
+
+
+class _OutputMonitorErrorForTestError(Exception):
+    def __init__(self, data: bytes, err_msg: str) -> None:
+        super().__init__(err_msg)
+        self.data = data
+
+
+class _ProcessMonitorErrorForTestError(Exception):
+    pass
+
+
+class _RogueOutputMonitor(flnr.OutputMonitor):
+    def __init__(self, *, error_at_line: int) -> None:
+        self.error_at_line = error_at_line
+        self.lines_count = 0
+        self.ils = flnr.IncrementalLineSplitter()
+
+    def process(self, data: bytes, _: float) -> None:
+        for line in self.ils.feed(data):
+            if self.lines_count >= self.error_at_line:
+                err_msg = "output monitor collapse"
+                raise _OutputMonitorErrorForTestError(line, err_msg)
+            self.lines_count += 1
+
+
+class _ProcessMonitorRogueOnStart(flnr.ProcessMonitor):
+    def __init__(self, *, sink: io.IOBase, period: float) -> None:
+        super().__init__(period=period)
+        self.sink = sink
+        self.sink.write("init called\n")
+
+    def on_start(self, pid: int, cmd: Sequence[str]) -> None:
+        self.sink.write(f"on start called, cmd = {cmd}, pid = {pid}\n")
+        err_msg = "on start error"
+        raise _ProcessMonitorErrorForTestError(err_msg)
+
+    def observe(self, pid: int) -> None:
+        self.sink.write(f"observe called, pid = {pid}\n")
+
+    def on_end(
+        self, return_code: int, stop_info: flnr.ProcessTerminationReason
+    ) -> None:
+        self.sink.write(
+            f"on end called, returncode={return_code}, stop_info={stop_info}\n"
+        )
+
+
+class _ProcessMonitorRogueObserve(flnr.ProcessMonitor):
+    def __init__(self, *, sink: io.IOBase, period: float) -> None:
+        super().__init__(period=period)
+        self.sink = sink
+        self.sink.write("init called\n")
+
+    def on_start(self, _: int, __: Sequence[str]) -> None:
+        self.sink.write("on start called\n")
+
+    def observe(self, _: int) -> None:
+        err_msg = "on observe error"
+        raise _ProcessMonitorErrorForTestError(err_msg)
+
+    def on_end(self, _: int, __: flnr.ProcessTerminationReason) -> None:
+        self.sink.write("on end called")
+
+
+class _ProcessMonitorRogueOnEnd(flnr.ProcessMonitor):
+    def __init__(self, *, sink: io.IOBase, period: float) -> None:
+        super().__init__(period=period)
+        self.sink = sink
+        self.sink.write("init called\n")
+
+    def on_start(self, _: int, __: Sequence[str]) -> None:
+        self.sink.write("on start called\n")
+
+    def observe(self, _: int) -> None:
+        self.sink.write("observe called\n")
+
+    def on_end(self, _: int, __: flnr.ProcessTerminationReason) -> None:
+        err_msg = "on end error"
+        raise _ProcessMonitorErrorForTestError(err_msg)
+
+
+def test_output_monitor_rogue(
+    test_resources: Path, py_exec: PythonCmdBuilder
+) -> None:
+    output = io.StringIO()
+    input_file = test_resources / "data" / "miami_nights.txt"
+    with pytest.raises(
+        flnr.MonitorFailedError, match="2 monitor failures were detected"
+    ) as excinfo:
+        flnr.run_shell_ex(
+            py_exec("ln_print.py", str(input_file), "utf-8", "0.2"),
+            stdout_observers=[
+                _RogueOutputMonitor(error_at_line=2),
+                TextOutputMonitor(
+                    sink=output, encoding="utf-8", auto_flush=True
+                ),
+                _RogueOutputMonitor(error_at_line=0),
+            ],
+        )
+    assert input_file.read_text(encoding="utf-8") == output.getvalue()
+    excval = excinfo.value
+    assert excval.proc_returncode == 0
+    expected_failures_count = 2
+    assert len(excval.monitor_exceptions) == expected_failures_count
+    assert isinstance(
+        excval.monitor_exceptions[0], _OutputMonitorErrorForTestError
+    )
+
+    eol = os.linesep.encode("utf-8")
+    assert (
+        excval.monitor_exceptions[0].data
+        == b"It's the cars and the clubs" + eol
+    )
+    assert isinstance(
+        excval.monitor_exceptions[1], _OutputMonitorErrorForTestError
+    )
+    assert excval.monitor_exceptions[1].data == b"I get lost in the life" + eol
+
+    assert "0: output monitor collapse" in str(excval)
+    assert "1: output monitor collapse" in str(excval)
+
+
+def test_process_monitor_rogue_startup(py_exec: PythonCmdBuilder) -> None:
+    output = io.StringIO()
+    with pytest.raises(
+        flnr.MonitorFailedError, match="1 monitor failures were detected"
+    ) as excinfo:
+        flnr.run_shell_ex(
+            py_exec("cat_dev_random.py"),
+            timeouts=flnr.ExecutionTimeouts(run=5.0),
+            process_monitors=[
+                _ProcessMonitorRogueOnStart(sink=output, period=1.0)
+            ],
+        )
+    excval = excinfo.value
+    assert excval.proc_returncode == return_code_for_sigterm()
+    expected_failures_count = 1
+    assert len(excval.monitor_exceptions) == expected_failures_count
+
+    outstrings = output.getvalue().splitlines()
+    assert outstrings[0] == "init called"
+    assert outstrings[1].startswith("on start called")
+    expected_message_count = 2
+    assert len(outstrings) == expected_message_count
+
+
+def test_process_monitor_rogue_observe(py_exec: PythonCmdBuilder) -> None:
+    output = io.StringIO()
+    with pytest.raises(
+        flnr.MonitorFailedError, match="1 monitor failures were detected"
+    ) as excinfo:
+        flnr.run_shell_ex(
+            py_exec("py_sleep.py", "3"),
+            process_monitors=[
+                _ProcessMonitorRogueObserve(sink=output, period=1.0)
+            ],
+        )
+    excval = excinfo.value
+    assert excval.proc_returncode == 0
+
+    outstrings = output.getvalue().splitlines()
+    assert outstrings[0] == "init called"
+    assert outstrings[1].startswith("on start called")
+    expected_message_count = 2
+    assert len(outstrings) == expected_message_count
+
+
+def test_process_monitor_rogue_on_end(py_exec: PythonCmdBuilder) -> None:
+    output = io.StringIO()
+    with pytest.raises(
+        flnr.MonitorFailedError, match="1 monitor failures were detected"
+    ) as excinfo:
+        flnr.run_shell_ex(
+            py_exec("py_sleep.py", "3"),
+            process_monitors=[
+                _ProcessMonitorRogueOnEnd(sink=output, period=1.0)
+            ],
+        )
+    excval = excinfo.value
+    assert excval.proc_returncode == 0
+
+    outstrings = output.getvalue().splitlines()
+    expected_message_count = 3
+    assert len(outstrings) >= expected_message_count
+    assert outstrings[0] == "init called"
+    assert outstrings[1].startswith("on start called")
+    assert outstrings[2].startswith("observe called")
+    assert outstrings[-1].startswith("observe called")
+
+
+def test_logger_stderr_capture_with_merge(py_exec: PythonCmdBuilder) -> None:
+    with pytest.raises(
+        ValueError,
+        match="stderr observers provided, while stdout/stderr merged",
+    ):
+        flnr.run_shell_ex(
+            py_exec("py_true.py"),
+            stderr_observers=[TextOutputMonitor(sink=io.StringIO())],
+            merge_std_streams=True,
+        )
