@@ -102,8 +102,6 @@ another adds timestamps to each line.
 import io
 import sys
 import pathlib
-
-from datetime import datetime
 import flnr
 
 
@@ -112,9 +110,10 @@ class ThroughputMonitor(flnr.OutputMonitor):
         self.sink = sink
         self.bytes_received = 0
 
-    def process(self, data: bytes) -> None:
+    def process(self, data: bytes, ts: float) -> None:
         self.bytes_received += len(data)
-        self.sink.write(f"{self.bytes_received} bytes\n".encode("latin-1"))
+        msg = f"{ts:.3f}s total {self.bytes_received} bytes\n"
+        self.sink.write(msg.encode("latin-1"))
 
 
 class TimestampingMonitor(flnr.OutputMonitor):
@@ -122,11 +121,9 @@ class TimestampingMonitor(flnr.OutputMonitor):
         self.sink = sink
         self.ils = flnr.IncrementalLineSplitter()
 
-    def process(self, data: bytes) -> None:
+    def process(self, data: bytes, ts: float) -> None:
         for line in self.ils.feed(data):
-            timestamp = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
-            self.sink.write(timestamp.encode("latin-1"))
-            self.sink.write(b" ")
+            self.sink.write(f"{ts:.3f}s ".encode("latin-1"))
             self.sink.write(line)
 
 
@@ -141,7 +138,7 @@ try:
                 ThroughputMonitor(sink=throughput_log),
                 TimestampingMonitor(sink=timestamped_output),
             ],
-            timeouts=flnr.ExecutionTimeouts(run=5.0),
+            timeouts=flnr.ExecutionTimeouts(run=3.0, output_drain=1.0),
             merge_std_streams=True,
         )
 except flnr.CommandFailedError as e:
