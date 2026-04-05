@@ -58,9 +58,12 @@ addopts = [
   "--cov-fail-under=90",
   "--cov-report=html",
   "--cov-report=term",
+  "-m",
+  "not extra",
 ]
 markers = [
   "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+  "extra: marks tests that check for an extended set of situations",
 ]
 
 [tool.coverage.run]
@@ -125,6 +128,7 @@ ignore = [
   "D107",
   "T201", # Allow print in tests
   "FBT001", # Allow bool in tests
+  "S603", # allow subprocess.run
 ]
 
 [tool.typos]
@@ -135,7 +139,8 @@ default.extend-ignore-re = [
 ]
 default.extend-ignore-identifiers-re = [
   "Raison",
-  "raison"
+  "raison",
+  "borken",
 ]
 files.extend-exclude = ["*.sops.yaml"]
 
