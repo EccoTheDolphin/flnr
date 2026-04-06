@@ -115,6 +115,9 @@ class ThroughputMonitor(flnr.OutputMonitor):
         msg = f"{ts:.3f}s total {self.bytes_received} bytes\n"
         self.sink.write(msg.encode("latin-1"))
 
+    def on_disable(self, _: flnr.OutputMonitorDisableReason, __: float) -> None:
+        pass
+
 
 class TimestampingMonitor(flnr.OutputMonitor):
     def __init__(self, *, sink: io.IOBase) -> None:
@@ -125,6 +128,14 @@ class TimestampingMonitor(flnr.OutputMonitor):
         for line in self.ils.feed(data):
             self.sink.write(f"{ts:.3f}s ".encode("latin-1"))
             self.sink.write(line)
+
+    def on_disable(
+        self, reason: flnr.OutputMonitorDisableReason, ts: float
+    ) -> None:
+        # flush out remaining line (if any)
+        self.process(b"", ts)
+        last_msg = f"{ts:3.3f} - output monitor disabled, reason = {reason}"
+        self.sink.write(last_msg.encode("latin-1"))
 
 
 try:
