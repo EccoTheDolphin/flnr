@@ -62,7 +62,8 @@ addopts = [
   "not extra",
 ]
 markers = [
-  "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+  "slow: marks tests as slow",
+  "stress: test tageting large amounts of data and memory consumption",
   "extra: marks tests that check for an extended set of situations",
 ]
 
