@@ -205,6 +205,12 @@ except flnr.CommandFailedError as e:
   exits. Without one, a stuck child process can hide monitor errors
   indefinitely. The timeout guarantees you eventually see what failed.
 
+- **Set `output_drain` high enough**. After the process exits, we wait this
+  many seconds for remaining output, then close the pipes. This can result
+  in data loss. For example, in cases where orphaned processes still hold the
+  respective file descriptors and continue writing data, that data will be
+  gone.
+
 - **If a monitor blocks, the entire system stops**. Monitors run in the same
   execution context as output processing. It may and will stall the child
   process. The intended usage model is just to write data to a log file,
@@ -213,11 +219,12 @@ except flnr.CommandFailedError as e:
   (e.g., calling `ps` or `sar` every few minutes). If you need something more
   complex, then this library is likely not the solution you need.
 
-- **Set `output_drain` high enough**. After the process exits, we wait this
-  many seconds for remaining output, then close the pipes. This can result
-  in data loss. For example, in cases where orphaned processes still hold the
-  respective file descriptors and continue writing data, that data will be
-  gone.
+- **Timeout escalation happens in stages**. If the `run` timeout expires, the
+  process is terminated and given `terminate` seconds to exit. If it does not,
+  it is killed and the library waits another `kill` seconds (defaulting to
+  `terminate` value) for confirmation that the process has exited. Monitors are
+  paused during this final wait to avoid prolonging the teardown. If no such
+  confirmation arrives, `ProcessKillFailedError` is raised.
 
 - Output buffering is environment-dependent and unpredictable, and users
   currently have no control over this behavior. For example, programs may
