@@ -10,7 +10,7 @@
   - [Examples](#examples)
     - [Minimal usage](#minimal-usage)
     - [Output monitoring](#output-monitoring)
-    - [System monitoring](#system-monitoring)
+    - [Environment monitoring](#environment-monitoring)
   - [Usage Notes](#usage-notes)
   - [Requirements](#requirements)
   - [Alternatives](#alternatives)
@@ -31,7 +31,8 @@ monitoring via callbacks, and manages process lifecycle and error propagation.
 It supports two types of callbacks:
 
 - **Output monitors** - process data as it is read from the child process.
-- **Process monitors** - observe system state during the child process lifetime.
+- **Execution environment monitors** - observe system state during the child
+  process lifetime.
 
 > [!NOTE]
 > The library uses asyncio under the hood. User-supplied callbacks are
@@ -47,7 +48,7 @@ Design principles:
 
 - Single‑threaded, blocking
 - monitoring logic executes synchronously in the same execution context as output
-  processing. **no isolation** is provided.
+  processing. **No isolation** is provided.
 
 Monitors are invoked as data is read from the child process. If you need
 concurrency or isolation, this tool is not a good fit.
@@ -63,14 +64,14 @@ If you have a test suite that:
 - Launches external programs as child processes
 - Fails sporadically and provides little insight into why
 
-…and observability is a luxury you don't have, **read on**.
+… and observability is a luxury you don't have, **read on**.
 
 The pattern above is a typical situation when integrating third‑party tools or
 test suites into your automation pipeline.
 
 Debugging sporadic failures is difficult, especially in complex environments
 where failures can originate from tests, the product under test, or the
-surrounding infrastructure—where Dark And Evil monsters like the Dreaded
+surrounding infrastructure—where Dark and Evil monsters like the Dreaded
 Kubernetes roam the field. `flnr` gives you just enough visibility to
 understand what happened - without building or adopting a full observability
 stack.
@@ -156,9 +157,9 @@ except flnr.CommandFailedError as e:
     print(f"{e}")
 ```
 
-### System monitoring
+### Environment monitoring
 
-A process monitor that hooks into the child process lifecycle. Extend
+An environment monitor that hooks into the child process lifecycle. Extend
 `observe()` to collect system stats (e.g., via ps, /proc, or psutil).
 
 ```python
@@ -169,7 +170,7 @@ import flnr
 from typing import TextIO, Sequence
 
 
-class ProcessMonitorForDemo(flnr.ProcessMonitor):
+class EnvMonitorForDemo(flnr.EnvironmentMonitor):
     def __init__(self, *, sink: TextIO, period: float) -> None:
         super().__init__(period=period)
         self.sink = sink
@@ -192,7 +193,7 @@ try:
     flnr.run_shell_ex(
         ["cat", "/dev/random"],
         timeouts=flnr.ExecutionTimeouts(run=5.0),
-        process_monitors=[ProcessMonitorForDemo(sink=sys.stdout, period=1.0)],
+        env_monitors=[EnvMonitorForDemo(sink=sys.stdout, period=1.0)],
     )
 except flnr.CommandFailedError as e:
     print(f"{e}")
@@ -200,28 +201,29 @@ except flnr.CommandFailedError as e:
 
 ## Usage Notes
 
-- **Always set a run timeout**. If a monitor crashes, we disable it and keep
-  the child process running. You get a `MonitorFailedError` after the process
-  exits. Without one, a stuck child process can hide monitor errors
-  indefinitely. The timeout guarantees you eventually see what failed.
+- **Monitor failures reporting is deferred until process exit.** Crashes in
+  monitors are captured but only reported after the child process finishes. A
+  stuck process therefore delays or hides these errors. **Always set a `run`
+  timeout** for critical tasks to guarantee process termination and timely
+  reporting.
 
-- **Set `output_drain` high enough**. After the process exits, we wait this
-  many seconds for remaining output, then close the pipes. This can result
-  in data loss. For example, in cases where orphaned processes still hold the
-  respective file descriptors and continue writing data, that data will be
-  gone.
+- **Set `output_drain` to a sufficiently high value**. After the process exits,
+  we wait this many seconds for remaining output, then close the pipes. This
+  can result in data loss. For example, in cases where orphaned processes
+  still hold the respective file descriptors and continue writing data, that
+  data will be lost.
 
-- **If a monitor blocks, the entire system stops**. Monitors run in the same
-  execution context as output processing. It may and will stall the child
+- **If a monitor blocks, internal processing stops.**. Monitors run in the same
+  execution context as output processing. It can and will stall the child
   process. The intended usage model is just to write data to a log file,
-  possibly adding a timestamp. That's it. Process monitors should not run too
-  frequently and should generally limit themselves to lightweight checks
-  (e.g., calling `ps` or `sar` every few minutes). If you need something more
-  complex, then this library is likely not the solution you need.
+  possibly adding a timestamp. That's it. Execution Environment Monitors should
+  not run too frequently and should generally limit themselves to lightweight
+  checks (e.g., calling `ps` or `sar` every few minutes). If you need something
+  more complex, then this library is likely not the solution you need.
 
 - **Timeout escalation happens in stages**. If the `run` timeout expires, the
   process is terminated and given `terminate` seconds to exit. If it does not,
-  it is killed and the library waits another `kill` seconds (defaulting to
+  it is killed and the library waits another `kill` seconds (defaulting to the
   `terminate` value) for confirmation that the process has exited. Monitors are
   paused during this final wait to avoid prolonging the teardown. If no such
   confirmation arrives, `ProcessKillFailedError` is raised.
