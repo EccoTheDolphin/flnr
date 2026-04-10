@@ -43,8 +43,9 @@ To supply a monitor, implement one of the provided interfaces:
 
 > [!WARNING]
 > `flnr` is **not** designed for use inside an existing async context.
-> Calling `run_shell_ex` creates its own event loop and blocks the caller. Using
-> it from an async context raises `RuntimeError`.
+> `run_shell_ex` function blocks and owns the event loop. It cannot be safely
+> composed with other async code. Using it from an async context raises
+> `RuntimeError`.
 
 Design principles:
 
@@ -215,7 +216,7 @@ except flnr.CommandFailedError as e:
   still hold the respective file descriptors and continue writing data, that
   data will be lost.
 
-- **If a monitor blocks, internal processing stops.**. Monitors run in the same
+- **If a monitor blocks, internal processing stops.** Monitors run in the same
   execution context as output processing. It can and will stall the child
   process. The intended usage model is just to write data to a log file,
   possibly adding a timestamp. That's it. Execution environment monitors should
