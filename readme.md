@@ -25,14 +25,15 @@
 ## About
 
 **flnr** is a minimal framework for executing external programs as child
-processes. It streams output to user-defined callbacks, supports process
-monitoring via callbacks, and manages process lifecycle and error propagation.
+processes. It streams output to user-defined callbacks, supports execution
+environment monitoring via callbacks, and manages process lifecycle and error
+propagation.
 
 It supports two types of callbacks:
 
 - **Output monitors** - process data as it is read from the child process.
-- **Execution environment monitors** - observe system state during the child
-  process lifetime.
+- **Environment monitors** - observe system state during the child process
+  lifetime.
 
 > [!NOTE]
 > The library uses asyncio under the hood. User-supplied callbacks are
@@ -47,8 +48,8 @@ It supports two types of callbacks:
 Design principles:
 
 - Single‑threaded, blocking
-- monitoring logic executes synchronously in the same execution context as output
-  processing. **No isolation** is provided.
+- monitoring logic executes synchronously in the same execution context as
+  output processing. **No isolation** is provided.
 
 Monitors are invoked as data is read from the child process. If you need
 concurrency or isolation, this tool is not a good fit.
@@ -77,9 +78,9 @@ understand what happened - without building or adopting a full observability
 stack.
 
 > [!NOTE]
-> The implementation is a single‑threaded, synchronous, cooperative subprocess
-> runner where user code runs inline and can stall the entire system by design.
-> This is what it is. Take it or leave it.
+> The implementation is a blocking subprocess runner with synchronous
+> callbacks and built-in lifecycle/timeout management.
+> User code can stall execution. This is what it is. Take it or leave it.
 
 ## Examples
 
@@ -216,7 +217,7 @@ except flnr.CommandFailedError as e:
 - **If a monitor blocks, internal processing stops.**. Monitors run in the same
   execution context as output processing. It can and will stall the child
   process. The intended usage model is just to write data to a log file,
-  possibly adding a timestamp. That's it. Execution Environment Monitors should
+  possibly adding a timestamp. That's it. Execution environment monitors should
   not run too frequently and should generally limit themselves to lightweight
   checks (e.g., calling `ps` or `sar` every few minutes). If you need something
   more complex, then this library is likely not the solution you need.
