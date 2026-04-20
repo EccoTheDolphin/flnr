@@ -9,6 +9,7 @@
   - [Raison d'être](#raison-d%C3%AAtre)
   - [Examples](#examples)
     - [Minimal usage](#minimal-usage)
+    - [Host termination](#host-termination)
     - [Output monitoring](#output-monitoring)
     - [Environment monitoring](#environment-monitoring)
   - [Usage Notes](#usage-notes)
@@ -29,22 +30,34 @@ processes. It streams output to user-supplied monitors, provides hooks for
 observing the execution environment, and manages process lifecycle and error
 propagation.
 
-To supply a monitor, implement one of the provided interfaces:
+The library has **zero runtime dependencies** and wraps asynchronous stream
+handling in a synchronous API, keeping adoption cost low for existing
+synchronous scripts.
 
-- **Output monitor** - for processing output data as it is read from the child
-  process.
-- **Environment monitor** - for observing environment state during the child
-  process lifetime.
+Standard tools often force a choice between treating a process as an opaque box
+or navigating the intricate mechanics of stream buffers. `flnr` bridges this
+gap by acting as a managed relay for process data. It exposes a high-level
+interface for process execution, output routing, and structured final-state
+reporting.
+
+Monitoring is organized around two core interfaces:
+
+- `flnr.OutputMonitor`: For real-time processing of output. The library includes
+  built-in implementations like `flnr.TextOutputMonitor` and
+  `flnr.BinaryOutputMonitor`.
+- `flnr.EnvironmentMonitor`: For periodic callbacks while the process is
+  active.
 
 > [!NOTE]
-> The library uses asyncio under the hood. User-supplied callbacks are
-> expected to be synchronous. Usage of asyncio is an implementation detail and
-> users should not rely on its usage in future versions of the library.
+> The library uses asyncio under the hood, but exposes a synchronous API.
+> User-supplied callbacks are expected to be synchronous. Usage of asyncio is
+> an implementation detail and users should not rely on its usage in future
+> versions of the library.
 
 > [!WARNING]
 > `flnr` is **not** designed for use inside an existing async context.
-> `run_shell_ex` function blocks and owns the event loop. It cannot be safely
-> composed with other async code. Using it from an async context raises
+> `run_ex` blocks and owns the event loop. It cannot be safely composed
+> with other async code. Using it from an async context raises
 > `RuntimeError`.
 
 Design principles:
@@ -58,6 +71,11 @@ concurrency or isolation, this tool is not a good fit.
 
 Monitors are intended to be observational only. This is a usage convention, not
 a constraint enforced by the library, and users are expected to follow it.
+
+**Result-Priority Error Handling:** To ensure subprocess results are never
+discarded due to an observer crash, monitor failures are captured and deferred.
+The supervisor prioritizes completing the process and draining its pipes over
+immediate error propagation.
 
 ## Raison d'être
 
@@ -81,8 +99,10 @@ stack.
 
 > [!NOTE]
 > The implementation is a blocking subprocess runner with synchronous
-> callbacks and built-in lifecycle/timeout management.
-> User code can stall execution. This is what it is. Take it or leave it.
+> callbacks and built-in lifecycle/timeout management. Because monitors run on
+> the same thread as the output relay, slow or blocking user code will stall
+> process execution. This is a deliberate design trade-off to prioritize zero
+> dependencies and execution predictability over isolation.
 
 ## Examples
 
@@ -91,21 +111,63 @@ stack.
 ```python
 import flnr
 
-flnr.run_shell_ex(
-    ["echo", "hello"],
-    timeouts=flnr.ExecutionTimeouts(run=5.0),
+fate = flnr.run_ex(["echo", "hello"], timeouts=flnr.ExecutionTimeouts(run=5.0))
+
+print(f"returncode: {fate.returncode}")
+print(f"termination_decision: {fate.termination_decision}")
+print(f"termination_method: {fate.termination_method}")
+# or just:
+print(fate)
+```
+
+### Host termination
+
+`flnr` can stop a running command in response to a host-side termination
+request. The convenience path is `HostTerminationRequest.HOST_SIGNALS`, which
+lets `run_ex()` temporarily install SIGINT and SIGTERM handlers for the
+current call.
+
+```python
+import flnr
+
+fate = flnr.run_ex(
+    ["make", "integration-tests"],
+    host_termination=flnr.HostTerminationRequest.HOST_SIGNALS,
+)
+```
+
+For applications that want to own signal handling themselves, `flnr` also
+provides `HostTerminationRequest()`. It is a stable, sticky trigger source:
+once triggered, it stays triggered, and later runs attached to the same object
+observe termination immediately.
+
+```python
+import signal
+import flnr
+
+terminator = flnr.HostTerminationRequest()
+signal.signal(signal.SIGINT, lambda s, f: terminator.trigger())
+
+fate = flnr.run_ex(
+    ["make", "integration-tests"],
+    host_termination=terminator,
 )
 ```
 
 ### Output monitoring
 
-Runs an external command with two output monitors: one tracks throughput,
-another adds timestamps to each line.
+Runs an external command with three output monitors: a custom throughput
+monitor, `flnr.BinaryOutputMonitor` for writing raw byte output, and
+`flnr.TextOutputMonitor` for writing text output, optionally prefixed with
+timestamps. The monitors operate independently, each handling the same process
+output and writing to a different destination.
 
 ```python
 import io
-import sys
 import pathlib
+import sys
+import time
+
 import flnr
 
 
@@ -123,42 +185,39 @@ class ThroughputMonitor(flnr.OutputMonitor):
         pass
 
 
-class TimestampingMonitor(flnr.OutputMonitor):
-    def __init__(self, *, sink: io.IOBase) -> None:
-        self.sink = sink
-        self.ils = flnr.IncrementalLineSplitter()
+# Noise generator as a single expression. We consume a non-terminating iterator
+# into a zero-length deque.
+noisy_stream = (
+    "import os; from collections import deque; "
+    "deque((os.write(1, os.urandom(1024)) for _ in iter(int, 1)), maxlen=0)"
+)
 
-    def process(self, data: bytes, ts: float) -> None:
-        for line in self.ils.feed(data):
-            self.sink.write(f"{ts:.3f}s ".encode("latin-1"))
-            self.sink.write(line)
-
-    def on_disable(
-        self, reason: flnr.OutputMonitorDisableReason, ts: float
-    ) -> None:
-        # flush out remaining line (if any)
-        self.process(b"", ts)
-        last_msg = f"{ts:3.3f} - output monitor disabled, reason = {reason}"
-        self.sink.write(last_msg.encode("latin-1"))
-
-
+# Simulating a long-running process by generating infinite random noise.
+# We decode as latin-1 to ensure the text monitor remains resilient
+# to high-entropy garbage while the binary monitor captures the raw state.
 try:
     with (
-        pathlib.Path("throughput.log").open("wb") as throughput_log,
-        pathlib.Path("timestamped.bin").open("wb") as timestamped_output,
+        pathlib.Path("throughput.id-11e1a300.log").open("wb") as throughput_log,
+        pathlib.Path("binary.id-243f6a88.bin").open("wb") as binary_log,
+        pathlib.Path("text.id-5f3759df.txt").open("w", encoding="utf-8") as txt,
     ):
-        flnr.run_shell_ex(
-            ["cat", "/dev/random"],
-            stdout_observers=[
+        flnr.run_ex(
+            [sys.executable, "-c", noisy_stream],
+            stdout_monitors=[
                 ThroughputMonitor(sink=throughput_log),
-                TimestampingMonitor(sink=timestamped_output),
+                flnr.BinaryOutputMonitor(sink=binary_log),
+                flnr.TextOutputMonitor(sink=txt, encoding="latin-1"),
             ],
+            # stop the process after 3 seconds of execution.
             timeouts=flnr.ExecutionTimeouts(run=3.0, output_drain=1.0),
-            merge_std_streams=True,
         )
 except flnr.CommandFailedError as e:
-    print(f"{e}")
+    # The run timeout expired; the process was successfully terminated.
+    print(e)
 ```
+
+`TextOutputMonitor` can prefix emitted text lines with timestamps. With
+`timestamp_base`, the prefixes are relative to a chosen starting point.
 
 ### Environment monitoring
 
@@ -184,19 +243,15 @@ class EnvMonitorForDemo(flnr.EnvironmentMonitor):
     def observe(self, pid: int) -> None:
         self.sink.write(f"observe, pid={pid}\n")
 
-    def on_end(
-        self, return_code: int, stop_info: flnr.ProcessTerminationReason
-    ) -> None:
-        self.sink.write(
-            f"on_end, return_code = {return_code}, info={stop_info}\n"
-        )
+    def on_end(self, fate: flnr.ProcessFate) -> None:
+        self.sink.write(f"on_end, {fate}\n")
 
 
 try:
-    flnr.run_shell_ex(
+    flnr.run_ex(
         ["cat", "/dev/random"],
         timeouts=flnr.ExecutionTimeouts(run=5.0),
-        env_monitors=[EnvMonitorForDemo(sink=sys.stdout, period=1.0)],
+        environment_monitors=[EnvMonitorForDemo(sink=sys.stdout, period=1.0)],
     )
 except flnr.CommandFailedError as e:
     print(f"{e}")
@@ -204,13 +259,13 @@ except flnr.CommandFailedError as e:
 
 ## Usage Notes
 
-- **Monitor failures reporting is deferred until process exit.** Crashes in
-  monitors are captured but only reported after the child process finishes. A
-  stuck process therefore delays or hides these errors. **Always set a `run`
-  timeout** for critical tasks to guarantee process termination and timely
-  reporting.
+- **Monitor failure reporting is deferred until process exit.** Crashes in
+  monitors are captured internally but are only raised after the child process
+  finishes. A stuck process will therefore delay or hide these errors. **Always
+  set a `run` timeout** for critical tasks to guarantee process termination and
+  timely reporting.
 
-- **Set `output_drain` to a sufficiently high value**. After the process exits,
+- **Set `output_drain` to a sufficiently high value.** After the process exits,
   we wait this many seconds for remaining output, then close the pipes. This
   can result in data loss. For example, in cases where orphaned processes
   still hold the respective file descriptors and continue writing data, that
@@ -220,18 +275,26 @@ except flnr.CommandFailedError as e:
   execution context as output processing. It can and will stall the child
   process. The intended usage model is just to write data to a log file,
   possibly adding a timestamp. That's it. Execution environment monitors should
-  not run too frequently and should generally limit themselves to lightweight
-  checks (e.g., calling `ps` or `sar` every few minutes). If you need something
-  more complex, then this library is likely not the solution you need.
+  not run too frequently and should generally limit themselves to quick,
+  low-cost checks (e.g., calling `ps` or `sar` every few minutes). If you need
+  more complex processing, this library is probably not the solution you need.
 
-- **Timeout escalation happens in stages**. If the `run` timeout expires, the
+- **Timeout escalation happens in stages.** If the `run` timeout expires, the
   process is terminated and given `terminate` seconds to exit. If it does not,
   it is killed and the library waits another `kill` seconds (defaulting to the
   `terminate` value) for confirmation that the process has exited. Monitors are
   paused during this final wait to avoid prolonging the teardown. If no such
   confirmation arrives, `ProcessKillFailedError` is raised.
 
-- Output buffering is environment-dependent and unpredictable, and users
+- **`flnr` provides built-in shutdown-aware modes.** By default, `run_ex()`
+  leaves the host application's signal handling unchanged. When shutdown-aware
+  execution is needed, pass
+  `host_termination=HostTerminationRequest.HOST_SIGNALS` to let `flnr`
+  temporarily watch common shutdown signals during the call, or pass a
+  `HostTerminationRequest()` instance when the application manages signal
+  handling itself and needs a stable termination trigger.
+
+- **Output buffering is environment-dependent and unpredictable.** Users
   currently have no control over this behavior. For example, programs may
   switch between line-buffered, block-buffered, or unbuffered modes depending
   on whether stdout is connected to a TTY or a pipe. This directly affects how
