@@ -141,8 +141,12 @@ provides `HostTerminationRequest()`. It is a stable, sticky trigger source:
 once triggered, it stays triggered, and later runs attached to the same object
 observe termination immediately.
 
+> [!WARNING]
+> This mode is currently unavailable on Windows.
+
 ```python
 import signal
+
 import flnr
 
 terminator = flnr.HostTerminationRequest()
@@ -158,7 +162,7 @@ fate = flnr.run_ex(
 
 Runs an external command with three output monitors: a custom throughput
 monitor, `flnr.BinaryOutputMonitor` for writing raw byte output, and
-`flnr.TextOutputMonitor` for writing text output, optionally prefixed with
+`flnr.TextOutputMonitor` for writing decoded text, optionally prefixed with
 timestamps. The monitors operate independently, each handling the same process
 output and writing to a different destination.
 
@@ -193,8 +197,9 @@ noisy_stream = (
 )
 
 # Simulating a long-running process by generating infinite random noise.
-# We decode as latin-1 to ensure the text monitor remains resilient
-# to high-entropy garbage while the binary monitor captures the raw state.
+# We decode as latin-1 so arbitrary bytes always become text at the monitor
+# boundary. The sink still writes UTF-8 on purpose: decoding policy belongs
+# to the monitor, not to the destination file.
 try:
     with (
         pathlib.Path("throughput.id-11e1a300.log").open("wb") as throughput_log,
@@ -293,6 +298,7 @@ except flnr.CommandFailedError as e:
   temporarily watch common shutdown signals during the call, or pass a
   `HostTerminationRequest()` instance when the application manages signal
   handling itself and needs a stable termination trigger.
+  **This custom trigger mode is currently unavailable on Windows.**
 
 - **Output buffering is environment-dependent and unpredictable.** Users
   currently have no control over this behavior. For example, programs may
