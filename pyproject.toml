@@ -1,11 +1,35 @@
 [project]
 name = "flnr"
 version = "0.1.0"
-description = "Python wrapper over process spawning facilities supporting monitoring and log capturing"
+description = "Zero-dependency process runner with explicit lifecycle control and stream multiplexing."
 readme = "readme.md"
 requires-python = ">=3.10"
 dependencies = [
 ]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Testing",
+    "Topic :: System :: Systems Administration",
+]
+
+[project.urls]
+Homepage = "https://github.com/EccoTheDolphin/flnr"
+Repository = "https://github.com/EccoTheDolphin/flnr"
+Issues = "https://github.com/EccoTheDolphin/flnr/issues"
+
 
 [dependency-groups]
 dev = [
@@ -42,9 +66,6 @@ dev = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
-[project.scripts]
-flnr = "flnr._cli:app"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -113,10 +134,14 @@ ignore = [
   # I know that large number of arguments is not good and I don't need linter
   # to remind me.
   "PLR0913",
+  # Ruff prefers Self over returning the class name as a string literal.
+  # We intentionally keep the string literal to avoid a runtime dependency
+  # on typing_extensions on Python 3.10.
+  "PYI034",
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = [
+"{tests,attic}/**/*.py" = [
   "S101",   # Allow asserts.
   "S311", # we no crypto in our hood
   "INP001", # Suppress `__init__.py` warning in tests.
