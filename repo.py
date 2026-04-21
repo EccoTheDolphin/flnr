@@ -19,7 +19,6 @@ from typing import Annotated, Any, ClassVar
 
 import typer
 from rich.logging import RichHandler
-from typing_extensions import Self
 
 _logger = logging.getLogger(__name__)
 
@@ -198,7 +197,7 @@ class ContextLogger:
             ),
         )
 
-    def __enter__(self) -> Self:
+    def __enter__(self) -> "ContextLogger":
         """Enter the context and log the start message."""
         if self.__running:
             msg = """Cannot start the same ContextLogger object if already in
@@ -242,7 +241,7 @@ class ContextLogger:
             elapsed = datetime.now(timezone.utc) - self.__start
             self._log("IN PROGRESS", elapsed=elapsed)
 
-    async def __aenter__(self) -> Self:
+    async def __aenter__(self) -> "ContextLogger":
         """Enter the async context and log the start message.
 
         Start pinging if needed.
