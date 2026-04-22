@@ -127,6 +127,11 @@ request. The convenience path is `HostTerminationRequest.HOST_SIGNALS`, which
 lets `run_ex()` temporarily install SIGINT and SIGTERM handlers for the
 current call.
 
+While active, `flnr` owns those handlers for the duration of the call and
+restores the previous handlers afterward. In other words, normal host-side
+SIGINT/SIGTERM behavior is temporarily replaced by `flnr`'s shutdown handling
+for that call.
+
 ```python
 import flnr
 
@@ -143,6 +148,9 @@ observe termination immediately.
 
 > [!WARNING]
 > This mode is currently unavailable on Windows.
+>
+> Attaching to an already-triggered request does not prevent process creation
+> ahead of time. The run observes termination as soon as supervision starts.
 
 ```python
 import signal
@@ -269,6 +277,10 @@ except flnr.CommandFailedError as e:
   finishes. A stuck process will therefore delay or hide these errors. **Always
   set a `run` timeout** for critical tasks to guarantee process termination and
   timely reporting.
+
+- **`flnr` supervises the direct child process only.** It does not manage the
+  full descendant process tree. Child-created descendants may outlive the
+  direct child and may keep inherited descriptors open.
 
 - **Set `output_drain` to a sufficiently high value.** After the process exits,
   we wait this many seconds for remaining output, then close the pipes. This
