@@ -28,6 +28,7 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/EccoTheDolphin/flnr"
+Documentation = "https://eccothedolphin.github.io/flnr/"
 Repository = "https://github.com/EccoTheDolphin/flnr"
 Issues = "https://github.com/EccoTheDolphin/flnr/issues"
 
