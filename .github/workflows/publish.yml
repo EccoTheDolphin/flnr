@@ -19,7 +19,6 @@ jobs:
     runs-on: ubuntu-24.04
     environment:
       name: testpypi
-      url: https://test.pypi.org/p/flnr
     permissions:
       contents: read
       id-token: write
