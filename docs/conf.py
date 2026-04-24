@@ -11,7 +11,7 @@ import sys
 project = "flnr"
 copyright = "2026, Anatoly Parshintsev"
 author = "Anatoly Parshintsev"
-release = "0.0.1"
+release = "0.1.0"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
