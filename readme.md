@@ -143,6 +143,11 @@ constraints are part of the design, not accidental omissions.
 - **Unobserved Streams Are Discarded:** Subprocess `stdin` and any output
   stream without configured monitors are connected to `DEVNULL`.
 
+- **Streams are Merged by Default:** To simplify common CI logging use cases,
+  flnr defaults to `merge_std_streams=True`. This routes both stdout and stderr
+  to your stdout_monitors. If you require separate stream handling, you must
+  explicitly set `merge_std_streams=False` in `flnr.run_ex()`
+
 ## Error Handling
 
 All execution failures derive from `flnr.ProcessExecutionError`. Every concrete
