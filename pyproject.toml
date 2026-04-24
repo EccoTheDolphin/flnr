@@ -1,5 +1,5 @@
 [project]
-name = "eccothedolphin-flnr-test"
+name = "flnr"
 version = "0.1.0"
 description = "Zero-dependency process runner with explicit lifecycle control and stream multiplexing."
 readme = "readme.md"
