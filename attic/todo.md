@@ -1,0 +1,11 @@
+- fix the stderr defaults. automatically separate observers
+- introduce new error for OutputMonitorDisableReason, to indicate broken pipe
+- Ensure “Stall Canary” tracks actual process()/observe() duration.
+- Assert lifecycle state machine actually enters kill path when terminate timeout expires
+- test: Is the last unterminated line currently emitted at process end?
+- Add post-mortem monitor failure snapshots
+- Introduce a heartbeat monitor
+- text monitor: add ability to flush on each line vs batch-flush on process call.
+- publish the damn thing
+- asyncio.to_thread adapter
+- generate `__all__` symbol

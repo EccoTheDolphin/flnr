@@ -2,8 +2,6 @@
 
 """Tiny helper to manage this repository."""
 
-# ruff: noqa: D103
-
 import asyncio
 import inspect
 import logging
@@ -385,7 +383,7 @@ def run_shell(
         cwd=cwd,
     )
     _logger.log(loglevel, f"[RUNNING IN SHELL]: {print_cmd}")
-    return subprocess.run(  # noqa: S603
+    return subprocess.run(
         cmd,
         env=env,
         check=check,
@@ -430,7 +428,7 @@ def setup_logger(logger: logging.Logger | None = None) -> None:
 
 
 _logger = logging.getLogger(__name__)
-_repo_path = Path(__file__).parent
+_repo_path = Path(__file__).parent.parent
 
 
 app = typer.Typer(
@@ -494,6 +492,17 @@ def format_code(
     diff_arg = ["--diff"] if check else []
     run_shell(["ruff", "format", *check_arg], cwd=_repo_path)
     run_shell(["ruff", "check", "--fix", *diff_arg], cwd=_repo_path)
+
+    run_shell(
+        [
+            sys.executable,
+            _repo_path / "attic" / "doc_scripts" / "sync_readme_examples.py",
+            "--resources-root",
+            _repo_path / "tests" / "_resources" / "readme_examples",
+            *check_arg,
+        ],
+        cwd=_repo_path,
+    )
 
     run_shell(
         ["mdformat", *git_files(_repo_path, ".md"), *check_arg], cwd=_repo_path

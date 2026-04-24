@@ -1,0 +1,4 @@
+- session management (control tty, etc)
+- buffering investigation. is is possible to control it?
+- logging module support
+- asyncio api support: isolate moitors to subprocess, then implement subj
