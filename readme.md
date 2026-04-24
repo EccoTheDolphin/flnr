@@ -1,5 +1,10 @@
 # `flnr`
 
+[![CI](https://github.com/EccoTheDolphin/flnr/actions/workflows/workflow.yml/badge.svg?branch=main)](https://github.com/EccoTheDolphin/flnr/actions/workflows/workflow.yml)
+[![PyPI](https://img.shields.io/pypi/v/flnr.svg)](https://pypi.org/project/flnr/)
+[![Python](https://img.shields.io/pypi/pyversions/flnr.svg)](https://pypi.org/project/flnr/)
+[![License](https://img.shields.io/pypi/l/flnr.svg)](https://pypi.org/project/flnr/)
+
 <!-- markdownlint-disable link-fragments -->
 
 <!-- mdformat-toc start --slug=gitlab --no-anchors --maxlevel=6 --minlevel=1 -->
