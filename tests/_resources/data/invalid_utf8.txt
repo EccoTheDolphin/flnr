@@ -1,0 +1,3 @@
+Valid text
+Invalid byte: ÿ
+Incomplete UTF-8: â(
