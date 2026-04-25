@@ -6,7 +6,7 @@
 [![Python](https://img.shields.io/pypi/pyversions/flnr.svg)](https://pypi.org/project/flnr/)
 [![License](https://img.shields.io/pypi/l/flnr.svg)](https://pypi.org/project/flnr/)
 
-[Documentation](https://eccothedolphin.github.io/flnr/) ·
+[API Reference](https://eccothedolphin.github.io/flnr/) ·
 [PyPI](https://pypi.org/project/flnr/) ·
 [Source](https://github.com/EccoTheDolphin/flnr)
 
