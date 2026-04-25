@@ -38,18 +38,20 @@
 
 ## About
 
-**flnr** is a minimal framework for executing external programs as child
-processes. It streams output to user-supplied monitors, provides hooks for
-observing the execution environment, and manages process lifecycle, timeouts,
-and error propagation.
+**flnr** is a small subprocess supervision harness for CI and automation code.
+It runs a direct child process, routes output through user-supplied monitors,
+escalates timeouts, records final process state, and preserves monitor
+failures as part of the final execution result.
 
-The library has **zero runtime dependencies** and wraps asynchronous stream
-handling in a synchronous API.
+It is designed for situations where a failed external command must still leave
+usable diagnostic state: observed output, termination path, return code, monitor
+errors, and host-requested shutdown.
 
-`flnr` is a structured replacement for direct `subprocess.run()` / `Popen` use
-when command execution needs timeouts, output routing, teardown control, and
-final-state reporting. It is not a drop-in replacement for every `subprocess`
-feature.
+The library has **zero runtime dependencies** and exposes a synchronous API.
+
+It can replace direct `subprocess.run()` / `Popen` use when command execution
+needs observable output handling, explicit lifecycle control, and structured
+final-state reporting.
 
 ## Raison d'être
 
