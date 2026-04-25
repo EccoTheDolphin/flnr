@@ -1,4 +1,4 @@
-"""Flnr is a library for non-invasive monitoring of subprocesses."""
+"""Small subprocess supervision harness for CI and automation code."""
 
 import asyncio
 import os
