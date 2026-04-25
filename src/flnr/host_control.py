@@ -26,7 +26,7 @@ class _HostSignalsSentinel:
 
 @cache
 def supports_host_termination_request() -> bool:
-    """Determine if current platform supports HostTerminationRequest."""
+    """Return whether explicit host termination requests are supported."""
     # technically, host HostTerminationRequest could be create starting
     # from python 3.12 on windows. However, such object would effectively
     # be useless, since current implementation of binder interface requires
@@ -37,7 +37,7 @@ def supports_host_termination_request() -> bool:
 
 
 class HostTerminationNotSupportedError(RuntimeError):
-    """Raised when host does not support host termination error."""
+    """Raised when host termination requests are not supported."""
 
 
 class HostTerminationRequest:
