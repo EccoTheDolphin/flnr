@@ -155,6 +155,9 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
+"src/flnr/mu.py" = [
+  "ARG002", # monitor methods keep descriptive parameter names for API docs.
+]
 "{tests,attic}/**/*.py" = [
   "S101",   # Allow asserts.
   "S311", # we no crypto in our hood

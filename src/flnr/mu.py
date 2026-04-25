@@ -257,10 +257,10 @@ class BinaryOutputMonitor(OutputMonitor):
         """Bind the monitor to a writable binary sink."""
         self.sink = sink
 
-    def process(self, data: bytes, _: float) -> None:
+    def process(self, data: bytes, ts: float) -> None:
         """Write a chunk of raw output bytes to the sink."""
         self.sink.write(data)
 
-    def on_disable(self, _: OutputMonitorDisableReason, __: float) -> None:
+    def on_disable(self, reason: OutputMonitorDisableReason, ts: float) -> None:
         """Flush the sink when monitoring ends."""
         self.sink.flush()
