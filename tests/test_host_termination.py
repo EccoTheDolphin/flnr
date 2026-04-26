@@ -1,17 +1,46 @@
+import asyncio
 import socket
 import sys
+from collections.abc import Callable, Sequence
+from typing import NoReturn
 
 import pytest
 
 import flnr
-
 from tests._support import moirai
 from tests._support.utils import (
-    TEST_DIR_ROOT,
     PythonCmdBuilder,
     return_code_for_sigterm,
 )
 
+
+def _run_with_rejected_async_loop_reader_attachment(
+    monkeypatch: pytest.MonkeyPatch,
+    run: Callable[[], object],
+) -> None:
+    rejected: list[bool] = []
+
+    class RejectingAddReaderAttachment:
+        def __init__(
+            self,
+            reader: socket.socket,
+            loop: asyncio.AbstractEventLoop,
+            ext_termination_request: asyncio.Event,
+        ) -> None:
+            del reader, loop, ext_termination_request
+            error_msg = "simulated add_reader failure"
+            rejected.append(True)
+            raise OSError(error_msg)
+
+    monkeypatch.setattr(
+        "flnr._host_control.waker._AsyncLoopReaderAttachment",
+        RejectingAddReaderAttachment,
+    )
+
+    try:
+        run()
+    finally:
+        assert len(rejected) == 1
 
 
 def test_multitrigger() -> None:
@@ -25,6 +54,32 @@ def test_trigger_on_close() -> None:
     trigger_object = flnr.HostTerminationRequest()
     trigger_object.close()
     trigger_object.trigger()
+
+
+def test_trigger_ignores_send_oserror(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+
+    def _fail_send(_: socket.socket, __: bytes) -> int:
+        error_msg = "simulated send failure"
+        raise OSError(error_msg)
+
+    monkeypatch.setattr(socket.socket, "send", _fail_send)
+
+    trigger_object = flnr.HostTerminationRequest()
+    try:
+        trigger_object.trigger()
+    finally:
+        trigger_object.close()
+
+
+def test_trigger_double_close() -> None:
+    trigger_object = flnr.HostTerminationRequest()
+    trigger_object.close()
+    with pytest.raises(
+        OSError, match="HostTerminationRequest is already closed"
+    ):
+        trigger_object.close()
 
 
 def test_hostsignals_sentinel_serialization() -> None:
@@ -50,6 +105,114 @@ def test_runner_host_control_no_trigger(py_exec: PythonCmdBuilder) -> None:
         request.close()
 
 
+def test_runner_host_control_no_trigger_poll(
+    py_exec: PythonCmdBuilder,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    request = flnr.HostTerminationRequest()
+    try:
+        _run_with_rejected_async_loop_reader_attachment(
+            monkeypatch,
+            lambda: flnr.run_ex(
+                py_exec("py_true.py"), host_termination=request
+            ),
+        )
+    finally:
+        request.close()
+
+
+def test_runner_host_control_triggered_poll(
+    py_exec: PythonCmdBuilder,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    request = flnr.HostTerminationRequest()
+    try:
+        request.trigger()
+        with pytest.raises(flnr.CommandFailedError) as excinfo:
+            _run_with_rejected_async_loop_reader_attachment(
+                monkeypatch,
+                lambda: flnr.run_ex(
+                    py_exec("cat_dev_random.py"), host_termination=request
+                ),
+            )
+        exc = excinfo.value
+        assert exc.fate == moirai.fate_external_request_terminate(
+            return_code_for_sigterm()
+        )
+    finally:
+        request.close()
+
+
+def test_runner_host_control_poll_select_failure(
+    py_exec: PythonCmdBuilder,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    select_failed: list[bool] = []
+
+    def _fail_select(
+        rlist: object,
+        wlist: object,
+        xlist: object,
+        timeout: float | None = None,
+    ) -> NoReturn:
+        del rlist, wlist, xlist, timeout
+        error_msg = "simulated select failure"
+        select_failed.append(True)
+        raise OSError(error_msg)
+
+    monkeypatch.setattr("flnr._host_control.waker.select.select", _fail_select)
+
+    request = flnr.HostTerminationRequest()
+    try:
+        _run_with_rejected_async_loop_reader_attachment(
+            monkeypatch,
+            lambda: flnr.run_ex(
+                py_exec("py_sleep.py", "1"), host_termination=request
+            ),
+        )
+    finally:
+        request.close()
+    assert len(select_failed) == 1
+
+
+def test_runner_host_control_poll_creation_failure(
+    py_exec: PythonCmdBuilder,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    polling_rejected: list[bool] = []
+
+    class RejectingPollingAttachment:
+        def __init__(
+            self,
+            *,
+            reader: socket.socket,
+            loop: asyncio.AbstractEventLoop,
+            event: asyncio.Event,
+        ) -> None:
+            del reader, loop, event
+            error_msg = "simulated polling failure"
+            polling_rejected.append(True)
+            raise OSError(error_msg)
+
+    monkeypatch.setattr(
+        "flnr._host_control.waker._PollingWakeupAttachment",
+        RejectingPollingAttachment,
+    )
+
+    request = flnr.HostTerminationRequest()
+    try:
+        with pytest.raises(OSError, match="simulated polling failure"):
+            _run_with_rejected_async_loop_reader_attachment(
+                monkeypatch,
+                lambda: flnr.run_ex(
+                    py_exec("py_true.py"), host_termination=request
+                ),
+            )
+    finally:
+        request.close()
+    assert len(polling_rejected) == 1
+
+
 def test_runner_host_control_sticky(py_exec: PythonCmdBuilder) -> None:
     request = flnr.HostTerminationRequest()
     try:
@@ -62,6 +225,29 @@ def test_runner_host_control_sticky(py_exec: PythonCmdBuilder) -> None:
         )
     finally:
         request.close()
+
+
+async def _run_in_async_thread_with_trigger(
+    py_exec: PythonCmdBuilder,
+) -> Sequence[flnr.ProcessFate | flnr.CommandFailedError | BaseException]:
+    request = flnr.HostTerminationRequest()
+    t_run = asyncio.to_thread(
+        flnr.run_ex,
+        py_exec("cat_dev_random.py"),
+        host_termination=request,
+    )
+    request.trigger()
+    return await asyncio.gather(t_run, return_exceptions=True)
+
+
+def test_runner_host_termination_trigger_across_threads(
+    py_exec: PythonCmdBuilder,
+) -> None:
+    result = asyncio.run(_run_in_async_thread_with_trigger(py_exec))[0]
+    assert isinstance(result, flnr.CommandFailedError)
+    assert result.fate == moirai.fate_external_request_terminate(
+        return_code_for_sigterm()
+    )
 
 
 def test_host_signals_windows_unsupported(
