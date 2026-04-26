@@ -9,12 +9,12 @@ from dataclasses import dataclass
 import pytest
 
 import flnr
-from tests._support import moirai
 from tests._support.utils import (
     TEST_DIR_ROOT,
     PythonCmdBuilder,
     return_code_for_sigterm,
 )
+
 
 def test_runner_host_signal_no_trigger(py_exec: PythonCmdBuilder) -> None:
     request = flnr.HostTerminationRequest()
