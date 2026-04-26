@@ -6,6 +6,7 @@ User-facing changes to `flnr` are documented here.
 
 ### Added
 
+- Automatic standard stream routing based on supplied output monitors
 - Changelog
 
 ## 0.1.0 - 2026-04-24
