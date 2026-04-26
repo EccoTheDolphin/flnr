@@ -1,14 +1,19 @@
+import socket
 import sys
 
 import pytest
 
 import flnr
 
-
-@pytest.mark.skipif(
-    not flnr.supports_host_termination_request(),
-    reason="HostTerminationRequest implementation does not work on platform",
+from tests._support import moirai
+from tests._support.utils import (
+    TEST_DIR_ROOT,
+    PythonCmdBuilder,
+    return_code_for_sigterm,
 )
+
+
+
 def test_multitrigger() -> None:
     trigger_object = flnr.HostTerminationRequest()
     for _ in range(1024 * 1024):
@@ -16,10 +21,6 @@ def test_multitrigger() -> None:
     trigger_object.close()
 
 
-@pytest.mark.skipif(
-    not flnr.supports_host_termination_request(),
-    reason="HostTerminationRequest implementation does not work on platform",
-)
 def test_trigger_on_close() -> None:
     trigger_object = flnr.HostTerminationRequest()
     trigger_object.close()
@@ -32,22 +33,35 @@ def test_hostsignals_sentinel_serialization() -> None:
     )
 
 
-@pytest.mark.skipif(
-    not flnr.supports_host_termination_request(),
-    reason="HostTerminationRequest implementation does not work on platform",
-)
-def test_host_termination_request_windows_unsupported(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    terminator = flnr.HostTerminationRequest()
-    monkeypatch.setattr(sys, "platform", "win32")
+def test_runner_host_control_closed(py_exec: PythonCmdBuilder) -> None:
+    request = flnr.HostTerminationRequest()
+    request.close()
+    with pytest.raises(
+        OSError, match="attempting to use closed HostTerminationRequest"
+    ):
+        flnr.run_ex(py_exec("py_true.py"), host_termination=request)
+
+
+def test_runner_host_control_no_trigger(py_exec: PythonCmdBuilder) -> None:
+    request = flnr.HostTerminationRequest()
     try:
-        with pytest.raises(RuntimeError, match="not supported on Windows"):
-            flnr.run_ex(
-                ["this-command-must-not-run"], host_termination=terminator
-            )
+        flnr.run_ex(py_exec("py_true.py"), host_termination=request)
     finally:
-        terminator.close()
+        request.close()
+
+
+def test_runner_host_control_sticky(py_exec: PythonCmdBuilder) -> None:
+    request = flnr.HostTerminationRequest()
+    try:
+        request.trigger()
+        with pytest.raises(flnr.CommandFailedError) as excinfo:
+            flnr.run_ex(py_exec("cat_dev_random.py"), host_termination=request)
+        exc = excinfo.value
+        assert exc.fate == moirai.fate_external_request_terminate(
+            return_code_for_sigterm()
+        )
+    finally:
+        request.close()
 
 
 def test_host_signals_windows_unsupported(
@@ -80,64 +94,23 @@ def test_set_blocking_failure(monkeypatch: pytest.MonkeyPatch) -> None:
         error_msg = "simulated failure"
         raise OSError(error_msg)
 
-    def _true() -> bool:
-        return True
-
     monkeypatch.setattr(
-        flnr.host_control.os,  # type: ignore[attr-defined]
-        "set_blocking",
+        socket.socket,
+        "setblocking",
         _fail,
         raising=False,
-    )
-    monkeypatch.setattr(
-        flnr.host_control, "supports_host_termination_request", _true
     )
 
     with pytest.raises(OSError, match="simulated failure"):
         flnr.HostTerminationRequest()
 
 
-def test_platform_termination_platform_not_supported(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    def _false() -> bool:
-        return False
+def test_socket_socketpair_failure(monkeypatch: pytest.MonkeyPatch) -> None:
 
-    monkeypatch.setattr(
-        flnr.host_control, "supports_host_termination_request", _false
-    )
-    expected_err = "HostTerminationRequest is not supported on this platform"
-    with pytest.raises(
-        flnr.HostTerminationNotSupportedError, match=expected_err
-    ):
-        flnr.HostTerminationRequest()
-
-
-def test_os_pipe_failure(monkeypatch: pytest.MonkeyPatch) -> None:
-
-    def _pipe_fail() -> None:
+    def _socketpair_fail() -> None:
         error_msg = "simulated pipe failure"
         raise OSError(error_msg)
 
-    def _set_blocking_passed(_: int, __: bool) -> None:
-        pass
-
-    def _true() -> bool:
-        return True
-
-    monkeypatch.setattr(
-        flnr.host_control.os,  # type: ignore[attr-defined]
-        "set_blocking",
-        _set_blocking_passed,
-        raising=False,
-    )
-    monkeypatch.setattr(
-        flnr.host_control, "supports_host_termination_request", _true
-    )
-    monkeypatch.setattr(
-        flnr.host_control.os,  # type: ignore[attr-defined]
-        "pipe",
-        _pipe_fail,
-    )
+    monkeypatch.setattr(socket, "socketpair", _socketpair_fail)
     with pytest.raises(OSError, match="simulated pipe failure"):
         flnr.HostTerminationRequest()

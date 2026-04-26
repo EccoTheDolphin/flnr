@@ -12,13 +12,7 @@ from .flnr import run_ex as run_ex
 from .host_control import (
     HostTerminationControlType as HostTerminationControlType,
 )
-from .host_control import (
-    HostTerminationNotSupportedError as HostTerminationNotSupportedError,
-)
 from .host_control import HostTerminationRequest as HostTerminationRequest
-from .host_control import (
-    supports_host_termination_request as supports_host_termination_request,
-)
 from .monitor_failure import MonitorFailure as MonitorFailure
 from .monitor_failure import MonitorHook as MonitorHook
 from .monitor_failure import OutputStream as OutputStream
