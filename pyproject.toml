@@ -27,10 +27,10 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/EccoTheDolphin/flnr"
-Documentation = "https://eccothedolphin.github.io/flnr/"
-Repository = "https://github.com/EccoTheDolphin/flnr"
-Issues = "https://github.com/EccoTheDolphin/flnr/issues"
+Homepage = "https://github.com/EccoTheDolphin/flnr/"
+Documentation = "https://flnr.readthedocs.io/en/stable/"
+Repository = "https://github.com/EccoTheDolphin/flnr/"
+Issues = "https://github.com/EccoTheDolphin/flnr/issues/"
 Changelog = "https://github.com/EccoTheDolphin/flnr/blob/main/CHANGELOG.md"
 
 [dependency-groups]
