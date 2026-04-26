@@ -22,6 +22,7 @@ from ._observatory import (
     _reader_task,
     _ReaderTaskSignals,
 )
+from ._stream_routing import _resolve_std_stream_plan
 from .exceptions import (
     CommandFailedError,
     MonitorFailedError,
@@ -55,7 +56,7 @@ class _RunnerArgs:
     cmd: Sequence[str]
     cwd: Path | None
     env: Mapping[str, str]
-    merge_std_streams: bool
+    merge_std_streams: bool | None
     stdout_monitors: Sequence[OutputMonitor]
     stderr_monitors: Sequence[OutputMonitor]
     environment_monitors: Sequence[EnvironmentMonitor]
@@ -66,28 +67,17 @@ class _RunnerArgs:
 
 class _RunnerScope:
     async def _start_process(self) -> asyncio.subprocess.Process:
-        if self.args.merge_std_streams:
-            stderr = asyncio.subprocess.STDOUT
-            if self.args.stderr_monitors:
-                error_msg = (
-                    "stderr monitors provided, while stdout/stderr merged"
-                )
-                raise ValueError(error_msg)
-        elif self.args.stderr_monitors:
-            stderr = asyncio.subprocess.PIPE
-        else:
-            stderr = asyncio.subprocess.DEVNULL
-
-        if self.args.stdout_monitors:
-            stdout = asyncio.subprocess.PIPE
-        else:
-            stdout = asyncio.subprocess.DEVNULL
+        stream_routing = _resolve_std_stream_plan(
+            merge_std_streams=self.args.merge_std_streams,
+            has_stdout_monitors=len(self.args.stdout_monitors) > 0,
+            has_stderr_monitors=len(self.args.stderr_monitors) > 0,
+        )
 
         return await asyncio.create_subprocess_exec(
             *self.args.cmd,
             stdin=asyncio.subprocess.DEVNULL,
-            stdout=stdout,
-            stderr=stderr,
+            stdout=stream_routing.stdout,
+            stderr=stream_routing.stderr,
             cwd=self.args.cwd,
             env=self.args.env,
         )
@@ -314,7 +304,7 @@ def run_ex(
     *,
     env: Mapping[str, str] | None = None,
     cwd: Path | None = None,
-    merge_std_streams: bool = True,
+    merge_std_streams: bool | None = None,
     timeouts: ExecutionTimeouts | None = None,
     stdout_monitors: Sequence[OutputMonitor] | None = None,
     stderr_monitors: Sequence[OutputMonitor] | None = None,
@@ -345,9 +335,13 @@ def run_ex(
     keep inherited file descriptors open, and continue producing output until
     ``output_drain`` expires.
 
-    ``merge_std_streams=True`` merges stderr into stdout. In that mode,
-    ``stderr_monitors`` must be empty. If no monitors are configured for a
-    stream, that stream is connected to ``DEVNULL``.
+    By default, ``merge_std_streams=None`` routes output based on configured
+    monitors. ``stdout_monitors`` see stdout and, unless ``stderr_monitors``
+    are configured, stderr. Configuring ``stderr_monitors`` routes stderr
+    separately. Explicit ``merge_std_streams=True`` always merges stderr into
+    stdout and rejects ``stderr_monitors``. Explicit
+    ``merge_std_streams=False`` keeps stdout and stderr separate. Streams
+    without monitors are connected to ``DEVNULL``.
 
     ``host_termination`` controls optional host-side termination requests
     (**Unix-only, Windows platforms are not supported at the moment**):

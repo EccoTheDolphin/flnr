@@ -152,13 +152,10 @@ constraints are part of the design, not accidental omissions.
   to exceed the configured limit, the monitor forcefully fragments it and emits
   the tail early.
 
-- **Unobserved Streams Are Discarded:** Subprocess `stdin` and any output
-  stream without configured monitors are connected to `DEVNULL`.
-
-- **Streams are Merged by Default:** To simplify common CI logging use cases,
-  flnr defaults to `merge_std_streams=True`. This routes both stdout and stderr
-  to your stdout_monitors. If you require separate stream handling, you must
-  explicitly set `merge_std_streams=False` in `flnr.run_ex()`
+- **Unmonitored Output Is Discarded:** `flnr` captures child process output
+  only through configured output monitors; unmonitored output is discarded.
+  Configure `stdout_monitors` to observe stdout and, by default, stderr too;
+  configure `stderr_monitors` when stderr should be observed separately.
 
 ## Error Handling
 
