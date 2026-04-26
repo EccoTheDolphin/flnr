@@ -1,14 +1,14 @@
 # `flnr`
 
 [![CI](https://github.com/EccoTheDolphin/flnr/actions/workflows/workflow.yml/badge.svg?branch=main)](https://github.com/EccoTheDolphin/flnr/actions/workflows/workflow.yml)
-[![Docs](https://github.com/EccoTheDolphin/flnr/actions/workflows/docs.yml/badge.svg?branch=main)](https://eccothedolphin.github.io/flnr/)
+[![Docs](https://app.readthedocs.org/projects/flnr/badge/?version=latest)](https://flnr.readthedocs.io/en/latest/)
 [![PyPI](https://img.shields.io/pypi/v/flnr.svg)](https://pypi.org/project/flnr/)
 [![Python](https://img.shields.io/pypi/pyversions/flnr.svg)](https://pypi.org/project/flnr/)
 [![License](https://img.shields.io/pypi/l/flnr.svg)](https://pypi.org/project/flnr/)
 
-[API Reference](https://eccothedolphin.github.io/flnr/) ·
+[API Reference](https://flnr.readthedocs.io/en/latest/) ·
 [PyPI](https://pypi.org/project/flnr/) ·
-[Source](https://github.com/EccoTheDolphin/flnr)
+[Source](https://github.com/EccoTheDolphin/flnr/)
 
 <!-- markdownlint-disable link-fragments -->
 
