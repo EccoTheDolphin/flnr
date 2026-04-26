@@ -55,3 +55,24 @@ def test_logger_stderr_to_stdout_default(py_exec: PythonCmdBuilder) -> None:
         stdout_monitors=[OutputMonitorProbe(sink=output_bin)],
     )
     assert output_bin.getvalue() == b"stderr outputstdout output"
+
+
+def test_logger_stderr_and_stdout_default(py_exec: PythonCmdBuilder) -> None:
+    output_stdout_bin = io.BytesIO()
+    output_stderr_bin = io.BytesIO()
+    flnr.run_ex(
+        py_exec("stderrstdout_output.py"),
+        stdout_monitors=[OutputMonitorProbe(sink=output_stdout_bin)],
+        stderr_monitors=[OutputMonitorProbe(sink=output_stderr_bin)],
+    )
+    assert output_stdout_bin.getvalue() == b"stdout output"
+    assert output_stderr_bin.getvalue() == b"stderr output"
+
+
+def test_logger_stderr_only_default(py_exec: PythonCmdBuilder) -> None:
+    output_stderr_bin = io.BytesIO()
+    flnr.run_ex(
+        py_exec("stderrstdout_output.py"),
+        stderr_monitors=[OutputMonitorProbe(sink=output_stderr_bin)],
+    )
+    assert output_stderr_bin.getvalue() == b"stderr output"
