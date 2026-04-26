@@ -50,7 +50,7 @@ def _run_output_draining(
 # grandchild: child still runs
 # output contents: at least 4 ticks observed, not data end marker present
 # output monitor: timeouts on-drain
-def test_reader_cancellation_tick_cycle(py_exec: PythonCmdBuilder) -> None:
+def test_drain_timeout_ticks(py_exec: PythonCmdBuilder) -> None:
     outlines = _run_output_draining(
         py_exec,
         timeouts=flnr.ExecutionTimeouts(run=10, output_drain=2),
@@ -74,7 +74,7 @@ def test_reader_cancellation_tick_cycle(py_exec: PythonCmdBuilder) -> None:
 # grandchild: child still runs
 # output contents: ticks emitted, data end markers present, no bye msg present
 # output monitor: timeouts on-drain
-def test_reader_run_timeouts_when_child_hang(py_exec: PythonCmdBuilder) -> None:
+def test_run_timeout_drain_timeout(py_exec: PythonCmdBuilder) -> None:
     total_ticks_count = 10
     outlines = _run_output_draining(
         py_exec,
@@ -96,7 +96,7 @@ def test_reader_run_timeouts_when_child_hang(py_exec: PythonCmdBuilder) -> None:
 # grandchild: child still runs
 # output contents: ticks emitted, data end markers present, no bye msg present
 # output monitor: timeouts on-drain
-def test_reader_drain_child_never_stops(py_exec: PythonCmdBuilder) -> None:
+def test_descendant_keeps_pipe_open(py_exec: PythonCmdBuilder) -> None:
     outlines = _run_output_draining(
         py_exec,
         timeouts=flnr.ExecutionTimeouts(run=1, output_drain=7),
@@ -114,7 +114,7 @@ def test_reader_drain_child_never_stops(py_exec: PythonCmdBuilder) -> None:
 # grandchild: dead before its parent
 # output contents: ticks emitted, data end markers present, bye msg present
 # output monitor: eof
-def test_reader_drain_child_eofs_before_parent(
+def test_descendant_eofs_first(
     py_exec: PythonCmdBuilder,
 ) -> None:
     outlines = _run_output_draining(
@@ -137,7 +137,7 @@ def test_reader_drain_child_eofs_before_parent(
 # grandchild: dies after run timeout, but before drain timeout triggers
 # output contents: ticks emitted, data end markers present, bye msg present
 # output monitor: eof
-def test_reader_cancellation_when_child_said_bye(
+def test_descendant_exits_during_drain(
     py_exec: PythonCmdBuilder,
 ) -> None:
     outlines = _run_output_draining(
@@ -160,7 +160,7 @@ def test_reader_cancellation_when_child_said_bye(
 # grandchild: finishes after it's parent, before drain timeout triggers
 # output contents: ticks emitted, data end markers present, bye msg present
 # output monitor: no stderr contents, eof
-def test_reader_cancellation_when_child_said_bye_nostderr(
+def test_stdout_only_drain(
     py_exec: PythonCmdBuilder,
 ) -> None:
     outlines = _run_output_draining(

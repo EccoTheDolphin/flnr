@@ -20,83 +20,83 @@ def _run_stream_processing(
     assert string_output.getvalue() == expected
 
 
-def test_logger_default_behavior() -> None:
+def test_text_default_encoding() -> None:
     default_output = io.StringIO()
     latin1_output = io.StringIO()
     rainbow_output = io.StringIO()
-    default_logger = flnr.TextOutputMonitor(sink=default_output)
-    latin1_logger = flnr.TextOutputMonitor(
+    default_monitor = flnr.TextOutputMonitor(sink=default_output)
+    latin1_monitor = flnr.TextOutputMonitor(
         sink=latin1_output, encoding="latin-1"
     )
-    rainbow_logger = flnr.TextOutputMonitor(
+    rainbow_monitor = flnr.TextOutputMonitor(
         sink=rainbow_output, encoding="utf-8"
     )
-    for logger in [default_logger, latin1_logger, rainbow_logger]:
-        logger.process(b"\xf0\x9f\x8c\x88", 0)
-        logger.process(b"", 0)
+    for monitor in [default_monitor, latin1_monitor, rainbow_monitor]:
+        monitor.process(b"\xf0\x9f\x8c\x88", 0)
+        monitor.process(b"", 0)
     assert latin1_output.getvalue() == default_output.getvalue()
     assert latin1_output.getvalue() != rainbow_output.getvalue()
 
 
-def test_logger_rainbow() -> None:
+def test_text_rainbow() -> None:
     _run_stream_processing([b"\xf0\x9f\x8c\x88", b""], "utf-8", "🌈")
 
 
-def test_logger_rainbow_in_chunks() -> None:
+def test_text_rainbow_chunks() -> None:
     _run_stream_processing(
         [b"\xf0", b"\x9f", b"\x8c", b"\x88", b""], "utf-8", "🌈"
     )
 
 
-def test_logger_rainbow_latin1() -> None:
+def test_text_rainbow_latin1() -> None:
     _run_stream_processing(
         [b"\xf0\x9f\x8c\x88", b""], "latin-1", "\xf0\x9f\x8c\x88"
     )
 
 
-def test_logger_rainbow_latin1_tail() -> None:
+def test_text_rainbow_latin1_tail() -> None:
     _run_stream_processing(
         [b"\xf0\x9f\x8c\x88tail", b""], "latin-1", "\xf0\x9f\x8c\x88tail"
     )
 
 
-def test_logger_broken_rainbow_latin1() -> None:
+def test_text_broken_rainbow_latin1() -> None:
     _run_stream_processing([b"\xf0\x9f\x8c", b""], "latin-1", "\xf0\x9f\x8c")
 
 
-def test_logger_broken_rainbow_utf8() -> None:
+def test_text_broken_rainbow_utf8() -> None:
     _run_stream_processing([b"\xf0\x9f\x8c", b""], "utf-8", "�")
 
 
-def test_logger_broken_rainbow_utf8_partial() -> None:
+def test_text_broken_rainbow_utf8_partial() -> None:
     _run_stream_processing([b"\xf0", b"\x9f", b"\x8c", b""], "utf-8", "�")
 
 
-def test_logger_broken_rainbow_with_tail_utf8() -> None:
+def test_text_broken_rainbow_with_tail_utf8() -> None:
     _run_stream_processing([b"\xf0\x9f\x8cbroken", b""], "utf-8", "�broken")
 
 
-def test_logger_data_no_newline_no_flush() -> None:
+def test_text_buffers_partial_line() -> None:
     _run_stream_processing([b"no_newline"], "utf-8", "")
 
 
-def test_logger_newline_normalization_lf() -> None:
+def test_text_lf() -> None:
     _run_stream_processing([b"line\n"], "utf-8", "line\n")
 
 
-def test_logger_newline_normalization_crlf() -> None:
+def test_text_crlf() -> None:
     _run_stream_processing([b"line\r\n"], "utf-8", "line\n")
 
 
-def test_logger_newline_normalization_cr() -> None:
+def test_text_cr_pending() -> None:
     _run_stream_processing([b"line\r"], "utf-8", "")
 
 
-def test_logger_newline_normalization_cr_flushed() -> None:
+def test_text_cr_flush() -> None:
     _run_stream_processing([b"line\r", b""], "utf-8", "line\r")
 
 
-def test_logger_ils_buffer_limit() -> None:
+def test_text_buffer_limit() -> None:
     string_sink = io.StringIO()
     log_mon = flnr.TextOutputMonitor(sink=string_sink, ils_buffer_limit=3)
     log_mon.process(b"123456", 0)
@@ -111,7 +111,7 @@ def test_logger_ils_buffer_limit() -> None:
     assert string_sink.getvalue() == "123456123xy"
 
 
-def test_logger_invalid_timestamp_base() -> None:
+def test_text_invalid_timestamp_base() -> None:
     error_msg = "timestamp_base must be finite non-negative real number or None"
     for value in [True, False, error_msg]:
         with pytest.raises(TypeError, match=error_msg):
@@ -124,7 +124,7 @@ def test_logger_invalid_timestamp_base() -> None:
             flnr.TextOutputMonitor(sink=io.StringIO(), timestamp_base=value)
 
 
-def test_logger_invalid_timestamp_precision() -> None:
+def test_text_invalid_timestamp_precision() -> None:
     error_msg = "timestamp_precision must be integer between 0 and 9 or None"
     for value in ["string", True, False, 1.0]:
         with pytest.raises(TypeError, match=error_msg):
@@ -139,7 +139,7 @@ def test_logger_invalid_timestamp_precision() -> None:
             )
 
 
-def test_logger_invalid_timestamp_base_noprecision() -> None:
+def test_text_timestamp_base_without_precision() -> None:
     error_msg = (
         "timestamp_base is specified, but timestamp_precision is missing"
     )
@@ -149,18 +149,18 @@ def test_logger_invalid_timestamp_base_noprecision() -> None:
         )
 
 
-def test_logger_timestamping_defaults() -> None:
+def test_text_timestamp_defaults() -> None:
     log_mon = flnr.TextOutputMonitor(sink=io.StringIO())
     assert log_mon.timestamp_precision is None
     assert log_mon.timestamp_base is None
 
 
-def test_logger_disable_marker_default() -> None:
+def test_text_disable_marker_default() -> None:
     log_mon = flnr.TextOutputMonitor(sink=io.StringIO())
     assert not log_mon.append_disable_marker
 
 
-def test_logger_disable_marker_enabled() -> None:
+def test_text_disable_marker_enabled() -> None:
     text_output = io.StringIO()
 
     with patch("flnr.mu.time.monotonic", return_value=10.0):
@@ -179,7 +179,7 @@ def test_logger_disable_marker_enabled() -> None:
 
 @pytest.mark.parametrize("precision", [0, 3, 9])
 @pytest.mark.parametrize("base", [None, 1.5])
-def test_logger_timestamp_precision(precision: int, base: float | None) -> None:
+def test_text_timestamp_precision(precision: int, base: float | None) -> None:
     sink = io.StringIO()
     log_mon = flnr.TextOutputMonitor(
         sink=sink,
@@ -200,7 +200,7 @@ def test_logger_timestamp_precision(precision: int, base: float | None) -> None:
 
 
 @pytest.mark.parametrize("encoding", ["utf-8", "latin-1"])
-def test_logger_encoding(test_resources: Path, encoding: str) -> None:
+def test_text_encoding(test_resources: Path, encoding: str) -> None:
     input_file = test_resources / "data" / "invalid_utf8.txt"
     text_data = input_file.read_text(encoding=encoding, errors="replace")
     string_sink = io.StringIO()

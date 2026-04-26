@@ -44,7 +44,7 @@ def test_failure_disables_monitor_with_error_reason() -> None:
     assert monitor.disable_reason == flnr.OutputMonitorDisableReason.ERROR
 
 
-def test_reader_failure_disables_active_output_monitors_with_error_reason() -> (
+def test_stream_failure_disables_active_output_monitors_with_error_reason() -> (
     None
 ):
     descriptor = ExecutionDescriptor(returncode=0, pid=1)

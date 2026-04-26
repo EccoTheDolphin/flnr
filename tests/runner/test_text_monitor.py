@@ -5,7 +5,7 @@ import flnr
 from tests._support.utils import PythonCmdBuilder
 
 
-def test_textlogger_stdoutstderr_capture(py_exec: PythonCmdBuilder) -> None:
+def test_merged_streams(py_exec: PythonCmdBuilder) -> None:
     string_output = io.StringIO()
     flnr.run_ex(
         py_exec("stderrstdout_output.py"),
@@ -17,9 +17,7 @@ def test_textlogger_stdoutstderr_capture(py_exec: PythonCmdBuilder) -> None:
     assert string_output.getvalue() == "stderr outputstdout output"
 
 
-def test_textlogger_stdout_text_capture(
-    test_resources: Path, py_exec: PythonCmdBuilder
-) -> None:
+def test_stdout_text(test_resources: Path, py_exec: PythonCmdBuilder) -> None:
     output = io.StringIO()
     input_file = test_resources / "data" / "default.txt"
     flnr.run_ex(

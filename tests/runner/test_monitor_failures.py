@@ -255,7 +255,7 @@ def test_env_monitor_rogue_on_end(py_exec: PythonCmdBuilder) -> None:
     assert outstrings[-1].startswith("observe called")
 
 
-def test_logger_stderr_capture_with_merge(py_exec: PythonCmdBuilder) -> None:
+def test_merge_rejects_stderr_monitor(py_exec: PythonCmdBuilder) -> None:
     with pytest.raises(
         ValueError,
         match="stderr monitors provided, while stdout/stderr merged",
