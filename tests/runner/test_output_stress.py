@@ -56,7 +56,7 @@ def _run_stressor(
 @pytest.mark.parametrize("shape", SHAPES)
 @pytest.mark.parametrize("flush", FLUSH)
 @pytest.mark.parametrize("probe", [True, False])
-def test_reader_stressor_stderr_separate(
+def test_stderr_separate(
     py_exec: PythonCmdBuilder, shape: str, flush: str, probe: bool
 ) -> None:
     stdout_monitors: list[flnr.OutputMonitor] = []
@@ -89,7 +89,7 @@ def test_reader_stressor_stderr_separate(
 @pytest.mark.parametrize("shape", SHAPES)
 @pytest.mark.parametrize("flush", FLUSH)
 @pytest.mark.parametrize("probe", [True, False])
-def test_reader_stressor_stderr_merged(
+def test_stderr_merged(
     py_exec: PythonCmdBuilder, shape: str, flush: str, probe: bool
 ) -> None:
     stdout_monitors: list[flnr.OutputMonitor] = []

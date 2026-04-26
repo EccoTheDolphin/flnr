@@ -6,7 +6,7 @@ from tests._support.probes import OutputMonitorProbe
 from tests._support.utils import PythonCmdBuilder
 
 
-def test_logger_basic_bin(
+def test_stdout_file_capture(
     py_exec: PythonCmdBuilder, test_resources: Path
 ) -> None:
     output = io.BytesIO()
@@ -18,7 +18,7 @@ def test_logger_basic_bin(
     assert input_file.read_bytes() == output.getvalue()
 
 
-def test_logger_stdout_capture(py_exec: PythonCmdBuilder) -> None:
+def test_stdout_only(py_exec: PythonCmdBuilder) -> None:
     stdout_bin = io.BytesIO()
     flnr.run_ex(
         py_exec("stderrstdout_output.py"),
@@ -28,7 +28,7 @@ def test_logger_stdout_capture(py_exec: PythonCmdBuilder) -> None:
     assert stdout_bin.getvalue() == b"stdout output"
 
 
-def test_logger_stderr_capture(py_exec: PythonCmdBuilder) -> None:
+def test_stderr_only(py_exec: PythonCmdBuilder) -> None:
     stderr_bin = io.BytesIO()
     flnr.run_ex(
         py_exec("stderrstdout_output.py"),
@@ -38,7 +38,7 @@ def test_logger_stderr_capture(py_exec: PythonCmdBuilder) -> None:
     assert stderr_bin.getvalue() == b"stderr output"
 
 
-def test_logger_stderr_to_stdout(py_exec: PythonCmdBuilder) -> None:
+def test_explicit_merge(py_exec: PythonCmdBuilder) -> None:
     output_bin = io.BytesIO()
     flnr.run_ex(
         py_exec("stderrstdout_output.py"),
@@ -48,7 +48,7 @@ def test_logger_stderr_to_stdout(py_exec: PythonCmdBuilder) -> None:
     assert output_bin.getvalue() == b"stderr outputstdout output"
 
 
-def test_logger_stderr_to_stdout_default(py_exec: PythonCmdBuilder) -> None:
+def test_default_merge(py_exec: PythonCmdBuilder) -> None:
     output_bin = io.BytesIO()
     flnr.run_ex(
         py_exec("stderrstdout_output.py"),
@@ -57,7 +57,7 @@ def test_logger_stderr_to_stdout_default(py_exec: PythonCmdBuilder) -> None:
     assert output_bin.getvalue() == b"stderr outputstdout output"
 
 
-def test_logger_stderr_and_stdout_default(py_exec: PythonCmdBuilder) -> None:
+def test_default_split(py_exec: PythonCmdBuilder) -> None:
     output_stdout_bin = io.BytesIO()
     output_stderr_bin = io.BytesIO()
     flnr.run_ex(
@@ -69,7 +69,7 @@ def test_logger_stderr_and_stdout_default(py_exec: PythonCmdBuilder) -> None:
     assert output_stderr_bin.getvalue() == b"stderr output"
 
 
-def test_logger_stderr_only_default(py_exec: PythonCmdBuilder) -> None:
+def test_default_stderr_only(py_exec: PythonCmdBuilder) -> None:
     output_stderr_bin = io.BytesIO()
     flnr.run_ex(
         py_exec("stderrstdout_output.py"),

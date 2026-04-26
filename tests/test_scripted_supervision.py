@@ -28,8 +28,8 @@ def test_output_from_mock_streamer() -> None:
     assert output.getvalue() == b"data"
 
 
-def test_sysmon_output_from_dead_streamer() -> None:
-    sysmon_sink = io.StringIO()
+def test_env_monitor_from_dead_streamer() -> None:
+    env_monitor_sink = io.StringIO()
     descriptor = ExecutionDescriptor(returncode=0, pid=42)
     descriptor.add_stdout_events(
         [b"data\n", b"", RuntimeError("should not happen")]
@@ -39,39 +39,43 @@ def test_sysmon_output_from_dead_streamer() -> None:
     process.terminate()
     run_scripted_process(
         process,
-        environment_monitors=[EnvMonitorProbe(sink=sysmon_sink, period=0.5)],
+        environment_monitors=[
+            EnvMonitorProbe(sink=env_monitor_sink, period=0.5)
+        ],
         timeouts=flnr.ExecutionTimeouts(run=1.0, output_drain=5.0),
     )
-    sysmon_lines = sysmon_sink.getvalue().splitlines()
+    env_monitor_lines = env_monitor_sink.getvalue().splitlines()
     assert (
-        sysmon_lines[0]
+        env_monitor_lines[0]
         == "on_start called. pid = 42, command = ['dummy.command']"
     )
     expected_fate = moirai.fate_no_intervention(0)
-    assert sysmon_lines[1] == f"on_end called. {expected_fate}"
+    assert env_monitor_lines[1] == f"on_end called. {expected_fate}"
 
 
-def test_sysmon_output() -> None:
-    sysmon_sink = io.StringIO()
+def test_env_monitor_output() -> None:
+    env_monitor_sink = io.StringIO()
     descriptor = ExecutionDescriptor(returncode=0, pid=41)
     descriptor.add_stdout_events([b"data\n", b""])
     descriptor.set_stdout_delays(1.0)
     run_descriptor(
         descriptor,
-        environment_monitors=[EnvMonitorProbe(sink=sysmon_sink, period=0.5)],
+        environment_monitors=[
+            EnvMonitorProbe(sink=env_monitor_sink, period=0.5)
+        ],
     )
-    sysmon_lines = sysmon_sink.getvalue().splitlines()
+    env_monitor_lines = env_monitor_sink.getvalue().splitlines()
     assert (
-        sysmon_lines[0]
+        env_monitor_lines[0]
         == "on_start called. pid = 41, command = ['dummy.command']"
     )
-    assert sysmon_lines[1] == "observe called. pid = 41"
-    assert sysmon_lines[2] == "observe called. pid = 41"
+    assert env_monitor_lines[1] == "observe called. pid = 41"
+    assert env_monitor_lines[2] == "observe called. pid = 41"
     expected_fate = moirai.fate_no_intervention(0)
-    assert sysmon_lines[-1] == f"on_end called. {expected_fate}"
+    assert env_monitor_lines[-1] == f"on_end called. {expected_fate}"
 
 
-def test_reader_error_once() -> None:
+def test_stream_error_once() -> None:
     output = io.BytesIO()
     descriptor = ExecutionDescriptor(returncode=0, pid=42)
     descriptor.add_stdout_events(
@@ -95,7 +99,7 @@ def test_reader_error_once() -> None:
     )
 
 
-def test_reader_stream_of_errors_no_timeout() -> None:
+def test_stream_error_without_run_timeout() -> None:
     output = io.BytesIO()
     descriptor = ExecutionDescriptor(
         returncode=None, pid=777, on_kill=return_code_for_sigkill()

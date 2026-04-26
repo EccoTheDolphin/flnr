@@ -44,7 +44,7 @@ class _EnvMonitorTestImplementation(flnr.EnvironmentMonitor):
         return f"monitor for {pid} called {counter} times"
 
 
-def test_basic_env_monitor_incorrect_period() -> None:
+def test_incorrect_period() -> None:
     for incorrect_value in [0, -1]:
         with pytest.raises(
             ValueError,
@@ -55,9 +55,7 @@ def test_basic_env_monitor_incorrect_period() -> None:
             )
 
 
-def test_basic_env_monitor_success(
-    py_exec: PythonCmdBuilder, test_resources: Path
-) -> None:
+def test_success(py_exec: PythonCmdBuilder, test_resources: Path) -> None:
     string_output = io.StringIO()
     # NOTE: test can fail under VERY heavy load
     flnr.run_ex(
@@ -84,7 +82,7 @@ def test_basic_env_monitor_success(
 # callback may not be called since the process is finished. We don't have
 # relevant asserts because such test would be unreliable and subject to
 # sporadic failures.
-def test_sysmon_quick_process(py_exec: PythonCmdBuilder) -> None:
+def test_quick_process(py_exec: PythonCmdBuilder) -> None:
     string_output = io.StringIO()
     flnr.run_ex(
         py_exec("py_true.py"),
@@ -99,7 +97,7 @@ def test_sysmon_quick_process(py_exec: PythonCmdBuilder) -> None:
     assert outlines[-1] == f"stopped. {expected_fate}"
 
 
-def test_basic_env_monitor_sigterm(
+def test_timeout_terminate(
     py_exec: PythonCmdBuilder, test_resources: Path
 ) -> None:
     string_output = io.StringIO()
@@ -132,7 +130,7 @@ def test_basic_env_monitor_sigterm(
     sys.platform.startswith("win"),
     reason="sigterm ignore is not supported on windows",
 )
-def test_basic_env_monitor_sigkill(py_exec: PythonCmdBuilder) -> None:
+def test_timeout_kill(py_exec: PythonCmdBuilder) -> None:
     string_output = io.StringIO()
     cmd_line = py_exec("sigterm_ignore.py")
     with pytest.raises(flnr.CommandFailedError) as excinfo:
