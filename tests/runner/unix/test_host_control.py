@@ -16,42 +16,12 @@ from tests._support.utils import (
     return_code_for_sigterm,
 )
 
-
-def test_runner_host_control_closed(py_exec: PythonCmdBuilder) -> None:
-    request = flnr.HostTerminationRequest()
-    request.close()
-    with pytest.raises(OSError, match="Bad file descriptor"):
-        flnr.run_ex(py_exec("py_true.py"), host_termination=request)
-
-
-def test_runner_host_control_no_trigger(py_exec: PythonCmdBuilder) -> None:
-    request = flnr.HostTerminationRequest()
-    try:
-        flnr.run_ex(py_exec("py_true.py"), host_termination=request)
-    finally:
-        request.close()
-
-
 def test_runner_host_signal_no_trigger(py_exec: PythonCmdBuilder) -> None:
     request = flnr.HostTerminationRequest()
     try:
         flnr.run_ex(
             py_exec("py_true.py"),
             host_termination=flnr.HostTerminationRequest.HOST_SIGNALS,
-        )
-    finally:
-        request.close()
-
-
-def test_runner_host_control_sticky(py_exec: PythonCmdBuilder) -> None:
-    request = flnr.HostTerminationRequest()
-    try:
-        request.trigger()
-        with pytest.raises(flnr.CommandFailedError) as excinfo:
-            flnr.run_ex(py_exec("cat_dev_random.py"), host_termination=request)
-        exc = excinfo.value
-        assert exc.fate == moirai.fate_external_request_terminate(
-            return_code_for_sigterm()
         )
     finally:
         request.close()

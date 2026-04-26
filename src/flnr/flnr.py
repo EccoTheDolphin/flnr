@@ -30,16 +30,15 @@ from .exceptions import (
     SupervisionFailedError,
 )
 from .fate import ProcessFate
+from .host_control import HostTerminationAttachment as HostTerminationAttachment
 from .host_control import (
     HostTerminationControlType as HostTerminationControlType,
 )
 from .host_control import HostTerminationRequest as HostTerminationRequest
 from .host_control import (
+    _attach_host_termination,
     _is_host_termination_object,
     _validate_host_termination_support,
-)
-from .host_control import (
-    _make_host_termination_binding as _make_host_termination_binding,
 )
 from .monitor_failure import MonitorFailure, OutputStream
 from .monitors import (
@@ -98,9 +97,7 @@ class _RunnerScope:
 
         self.ext_termination_request: asyncio.Event = asyncio.Event()
 
-        self.host_termination_binding = _make_host_termination_binding(
-            args.host_termination
-        )
+        self.host_termination_binding: HostTerminationAttachment | None = None
 
         self.reader_ctrl = _ReaderTaskSignals(
             monitor_callbacks_allowed=self.monitor_callbacks_allowed,
@@ -145,8 +142,10 @@ class _RunnerScope:
         )
 
     async def _ainit(self) -> None:
-        self.host_termination_binding.activate(
-            asyncio.get_running_loop(), self.ext_termination_request
+        self.host_termination_binding = _attach_host_termination(
+            self.args.host_termination,
+            asyncio.get_running_loop(),
+            self.ext_termination_request,
         )
         self.process = await self._start_process()
         if self.process.stdout is not None:
@@ -193,17 +192,20 @@ class _RunnerScope:
         ]
 
     async def _acleanup(self) -> None:
-        # this may affect global state, so deactivate sooner
-        self.host_termination_binding.deactivate()
-        # next, we kill subprocess since it is the most expensive object
-        if self.process is not None:
-            _attempt_to_kill(self.process)
-        await _cancel_tasks(
-            self.process_fate_task,
-            *self.env_monitor_tasks,
-            self.reader_stderr_task,
-            self.reader_stdout_task,
-        )
+        try:
+            # this may affect global state, so deactivate sooner
+            if self.host_termination_binding is not None:
+                await self.host_termination_binding.deactivate()
+        finally:
+            # next, we kill subprocess since it is the most expensive object
+            if self.process is not None:
+                _attempt_to_kill(self.process)
+            await _cancel_tasks(
+                self.process_fate_task,
+                *self.env_monitor_tasks,
+                self.reader_stderr_task,
+                self.reader_stdout_task,
+            )
 
     async def __aenter__(self) -> "_RunnerScope":
         try:
