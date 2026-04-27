@@ -8,10 +8,6 @@ on:
 
 permissions: {}
 
-concurrency:
-  group: pages
-  cancel-in-progress: false
-
 defaults:
   run:
     shell: bash
@@ -39,25 +35,3 @@ jobs:
 
       - name: Build Sphinx docs
         run: uv run --python 3.11 --frozen sphinx-build -W -b html docs docs/_build/html
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: docs/_build/html
-
-  deploy:
-    name: deploy-docs
-    needs: build
-    runs-on: ubuntu-24.04
-    if: github.ref == 'refs/heads/main'
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    permissions:
-      pages: write
-      id-token: write
-
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
