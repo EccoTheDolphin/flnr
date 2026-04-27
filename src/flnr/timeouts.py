@@ -47,7 +47,7 @@ class ExecutionTimeouts:
     2. **Forced kill**: If the process does not exit within the ``terminate``
        grace period, it is forcibly killed.
 
-    *If **flnr** encounters an unrecoverable internal failure while reading
+    *If flnr encounters an unrecoverable internal failure while reading
     process output:*
 
     - The process is forcibly terminated immediately, without a graceful
