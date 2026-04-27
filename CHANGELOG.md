@@ -4,6 +4,8 @@ User-facing changes to `flnr` are documented here.
 
 ## Unreleased
 
+## 0.2.0 - 2026-04-27
+
 ### Added
 
 - `HostTerminationRequest` now works on Windows. `HOST_SIGNALS` remains
