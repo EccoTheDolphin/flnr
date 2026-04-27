@@ -94,8 +94,6 @@ addopts = [
   "--cov-fail-under=90",
   "--cov-report=html",
   "--cov-report=term",
-  "-m",
-  "not extra",
 ]
 markers = [
   "slow: marks tests as slow",
