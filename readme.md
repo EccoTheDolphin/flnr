@@ -95,9 +95,10 @@ The library revolves around a small set of core types and interfaces:
 - **State-Preserving Exceptions:** Execution failures raise subclasses of
   `flnr.ProcessExecutionError` that retain the resolved `flnr.ProcessFate`.
 
-- **Host Termination Modes:** Trigger graceful shutdowns via an explicit
-  `flnr.HostTerminationRequest` or, on supported platforms, by temporarily
-  binding host signal handlers for the duration of the call.
+- **Host Termination Requests:** Let caller code request flnr-controlled child
+  termination explicitly via `flnr.HostTerminationRequest`. On Unix/POSIX,
+  `flnr.HostTerminationRequest.HOST_SIGNALS` provides an opt-in shortcut that
+  temporarily maps host SIGINT/SIGTERM to that request for one `run_ex()` call.
 
 ## Design Constraints
 

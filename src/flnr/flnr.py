@@ -349,8 +349,8 @@ def run_ex(
     - ``HostTerminationRequest.HOST_SIGNALS`` installs temporary SIGINT and
       SIGTERM handlers for the duration of the call. While active, ``flnr``
       owns those handlers and restores the previous ones when the call
-      returns. **This mode is supported only when called from the main Python
-      thread**.
+      returns. **This mode is Unix/POSIX-only and is supported only when called
+      from the main Python thread**.
     - ``HostTerminationRequest()`` attaches the run to a caller-managed,
       sticky trigger source that may be reused across runs. Attaching to an
       already-triggered request does not prevent process creation ahead of

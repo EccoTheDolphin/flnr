@@ -66,9 +66,10 @@ class HostTerminationRequest:
     #:
     #: Constraints:
     #:
-    #: - Unix only
+    #: - Unix/POSIX only
     #: - main Python thread only
-    #: - while active, ``flnr`` owns those handlers for the duration of the call
+    #: - while active, ``flnr`` owns SIGINT/SIGTERM handling for the duration
+    #:   of the call
     #: - previous handlers are restored when ``run_ex()`` returns
     #:
     #: This temporarily replaces normal SIGINT/SIGTERM handling for the call.
