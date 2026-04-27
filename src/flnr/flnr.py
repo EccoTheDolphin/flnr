@@ -345,9 +345,6 @@ def run_ex(
     ``merge_std_streams=False`` keeps stdout and stderr separate. Streams
     without monitors are connected to ``DEVNULL``.
 
-    ``host_termination`` controls optional host-side termination requests
-    (**Unix-only, Windows platforms are not supported at the moment**):
-
     - ``None`` leaves host-driven termination handling disabled.
     - ``HostTerminationRequest.HOST_SIGNALS`` installs temporary SIGINT and
       SIGTERM handlers for the duration of the call. While active, ``flnr``
