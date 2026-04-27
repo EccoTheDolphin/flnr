@@ -112,18 +112,17 @@ class _PollingWakeupAttachment(HostTerminationAttachment):
         event: asyncio.Event,
         poll_interval: float = _POLL_PERIOD,
     ) -> None:
-        self._reader: socket.socket | None = reader
+        self._reader = reader
         self._event = event
-        self._loop = loop
         self._task = loop.create_task(
-            self._poll(poll_interval),
+            self._poll(reader, poll_interval),
             name="host_termination.poll_socket",
         )
 
-    async def _poll(self, poll_interval: float) -> None:
-        while self._reader is not None:
+    async def _poll(self, reader: socket.socket, poll_interval: float) -> None:
+        while True:
             try:
-                readable, _, _ = select.select([self._reader], [], [], 0)
+                readable, _, _ = select.select([reader], [], [], 0)
             except OSError:
                 return
 
@@ -134,11 +133,10 @@ class _PollingWakeupAttachment(HostTerminationAttachment):
             await asyncio.sleep(poll_interval)
 
     async def deactivate(self) -> None:
-        reader = self._reader
-        self._reader = None
-        if reader is not None:
-            reader.close()
-        await _cancel_tasks(self._task)
+        try:
+            await _cancel_tasks(self._task)
+        finally:
+            self._reader.close()
 
 
 def _attach_socket_waker(
