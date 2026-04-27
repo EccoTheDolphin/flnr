@@ -7,8 +7,13 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 import os
 import sys
-import tomllib
 from pathlib import Path
+
+if sys.version_info < (3, 11):
+    msg = "Building flnr documentation requires Python 3.11 or newer."
+    raise RuntimeError(msg)
+
+import tomllib
 
 ROOT = Path(__file__).parents[1]
 
