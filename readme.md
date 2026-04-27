@@ -244,9 +244,6 @@ fate = flnr.run_ex(
 <!-- /readme-sync -->
 
 > [!WARNING]
-> Explicit `flnr.HostTerminationRequest` integration is currently unavailable
-> on Windows.
->
 > Attaching to an already-triggered request does not prevent process creation
 > ahead of time. The run observes termination as soon as supervision starts.
 

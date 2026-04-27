@@ -6,8 +6,20 @@ User-facing changes to `flnr` are documented here.
 
 ### Added
 
-- automatic stdout/stderr routing based on configured output monitors.
-- changelog
+- `HostTerminationRequest` now works on Windows. `HOST_SIGNALS` remains
+  Unix/POSIX-only.
+
+### Changed
+
+- stdout/stderr routing is now derived automatically from configured output
+  monitors.
+
+### Removed
+
+- removed `supports_host_termination_request()`. Explicit host-side termination
+  is now supported through `HostTerminationRequest`.
+- removed `HostTerminationNotSupportedError`; unsupported host-signal binding now
+  fails through normal argument validation.
 
 ## 0.1.0 - 2026-04-24
 

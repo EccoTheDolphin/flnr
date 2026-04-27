@@ -50,9 +50,6 @@ class HostTerminationRequest:
     process creation ahead of time; it only means the run will converge on
     termination immediately after startup.
 
-    .. warning::  Usage of this object is not supported on Windows in the
-                  current implementation.
-
     Creating a HostTerminationRequest allocates OS resources. Those resources
     may be released with ``close()``, but ``close()`` is ordinary lifecycle
     cleanup and must not race with future ``trigger()`` calls.
