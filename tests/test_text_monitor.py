@@ -169,11 +169,11 @@ def test_text_disable_marker_enabled() -> None:
         )
         assert log_mon.append_disable_marker
     log_mon.on_disable(flnr.OutputMonitorDisableReason.ERROR, 1)
-    assert text_output.getvalue().splitlines() == [
-        "",
-        "[flnr] !! text output monitor disabled: error",
-        "[flnr] !! monitor was created @ monotonic 10.0",
-        "[flnr] !! end of watch @ monotonic 1",
+    assert text_output.getvalue().splitlines(keepends=True) == [
+        "\n",
+        "[flnr] !! text output monitor disabled: error\n",
+        "[flnr] !! monitor was created @ monotonic 10.0\n",
+        "[flnr] !! end of watch @ monotonic 1\n",
     ]
 
 
