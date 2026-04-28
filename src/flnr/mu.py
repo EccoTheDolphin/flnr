@@ -245,7 +245,7 @@ class TextOutputMonitor(OutputMonitor):
             self.sink.write(
                 f"\n[flnr] !! text output monitor disabled: {reason}"
                 f"\n[flnr] !! monitor was created @ monotonic {self.ts_created}"
-                f"\n[flnr] !! end of watch @ monotonic {ts}"
+                f"\n[flnr] !! end of watch @ monotonic {ts}\n"
             )
             self.sink.flush()
 
