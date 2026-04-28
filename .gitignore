@@ -7,6 +7,7 @@ docs/_build
 wheels/
 *.egg-info
 .coverage
+.local
 
 # Virtual environments
 .venv
