@@ -1,6 +1,7 @@
-import re
-
 import flnr
+from tests._support.exception_report import (
+    normalize_traceback_report,
+)
 from tests._support.utils import ExceptionMutator
 
 from ._render_utils import (
@@ -13,21 +14,6 @@ TRACEBACK_PATTERN = """Traceback (most recent call last):
     raise_it()
   File "<file>", line <n>, in <func>
     raise exc"""
-
-
-def _normalize_traceback(text: str) -> str:
-    phase1 = re.sub(
-        r'File ".*?", line \d+, in \w+',
-        'File "<file>", line <n>, in <func>',
-        text,
-    )
-    phase1_lines = phase1.splitlines()
-    kept = [
-        line
-        for line in phase1_lines
-        if not re.fullmatch(r"[ \t]*[~^]+[ \t]*", line)
-    ]
-    return "\n".join(kept)
 
 
 def test_all_monitor_report(
@@ -74,7 +60,7 @@ ValueError: sys1
 [3] stderr monitor #42 (_DummyMonitor) failed in on_end
 {TRACEBACK_PATTERN}
 RuntimeError: err1"""
-    normalized_report = _normalize_traceback(rendered_report)
+    normalized_report = normalize_traceback_report(rendered_report)
     assert normalized_report == expected_report
 
 
@@ -114,5 +100,5 @@ RuntimeError: oops1
 [2] ImportError: oops2
 {TRACEBACK_PATTERN}
 ImportError: oops2"""
-    normalized_report = _normalize_traceback(rendered_report)
+    normalized_report = normalize_traceback_report(rendered_report)
     assert normalized_report == expected_report
