@@ -4,6 +4,17 @@ User-facing changes to `flnr` are documented here.
 
 ## Unreleased
 
+## 0.2.1 - 2026-04-29
+
+### Added
+
+- added failure diagnostics example covering combined command and monitor
+  failures.
+
+### Fixed
+
+- `TextOutputMonitor` disable markers now end with a newline.
+
 ## 0.2.0 - 2026-04-27
 
 ### Added

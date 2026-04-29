@@ -1,6 +1,6 @@
 [project]
 name = "flnr"
-version = "0.2.0"
+version = "0.2.1"
 description = "Zero-dependency process runner with explicit lifecycle control and stream multiplexing."
 readme = "readme.md"
 license = "MIT"
