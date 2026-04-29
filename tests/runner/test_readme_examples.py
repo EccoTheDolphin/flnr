@@ -1,12 +1,14 @@
 import io
 import pathlib
 import py_compile
+import subprocess
 import sys
 
 import pytest
 
 import flnr
 from tests._support import moirai
+from tests._support.exception_report import normalize_traceback_report
 from tests._support.utils import (
     return_code_for_sigterm,
 )
@@ -72,3 +74,27 @@ def test_05_env_mon(test_resources: pathlib.Path) -> None:
 
     assert result == moirai.fate_no_intervention(0)
     assert out_lines[-1] == f"fate: {expected_fate}"
+
+
+def test_06_failure_diagnostics(test_resources: pathlib.Path) -> None:
+    expected = (
+        (
+            test_resources
+            / "readme_examples"
+            / "06_failure_diagnostics.expected.txt"
+        )
+        .read_text(encoding="utf-8")
+        .rstrip("\n")
+    )
+    result = subprocess.run(
+        [
+            sys.executable,
+            test_resources / "readme_examples" / "06_failure_diagnostics.py",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.stderr == ""
+    assert normalize_traceback_report(result.stdout) == expected

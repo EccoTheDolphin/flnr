@@ -26,6 +26,7 @@
     - [Host termination](#host-termination)
     - [Output monitoring](#output-monitoring)
     - [Environment monitoring](#environment-monitoring)
+    - [Failure diagnostics](#failure-diagnostics)
   - [Requirements](#requirements)
   - [Alternatives](#alternatives)
   - [Development](#development)
@@ -392,6 +393,88 @@ except flnr.CommandFailedError as e:
     # unexpected return code -15
     # fate: returncode=-15, decision=timeout, method=terminate
     print(f"{e}")
+```
+
+<!-- /readme-sync -->
+
+### Failure diagnostics
+
+Execution exceptions preserve the resolved process state and any monitor
+failures recorded during the run. This example shows a command failure reported
+together with two output monitor failures.
+
+<!-- readme-sync path="06_failure_diagnostics.py" lang="python" -->
+
+```python
+import sys
+
+import flnr
+
+
+class FailsOnMarker(flnr.OutputMonitor):
+    def __init__(self, marker: bytes) -> None:
+        self.marker = marker
+        # Output monitors receive data in chunks, so split lines incrementally.
+        self.lines = flnr.IncrementalLineSplitter()
+
+    def process(self, data: bytes, ts: float) -> None:
+        del ts
+        for line in self.lines.feed(data):
+            if self.marker in line:
+                msg = f"monitor failed on {self.marker.decode()}"
+                raise RuntimeError(msg)
+
+
+cmd = [
+    sys.executable,
+    "-c",
+    "print('alpha'); print('beta'); raise SystemExit(42)",
+]
+
+try:
+    flnr.run_ex(
+        cmd,
+        stdout_monitors=[
+            FailsOnMarker(b"alpha"),
+            FailsOnMarker(b"beta"),
+        ],
+    )
+except flnr.CommandFailedError as exc:
+    print(exc)
+```
+
+<!-- /readme-sync -->
+
+The rendered exception report includes both the process result and per-monitor
+failure details:
+
+<!-- readme-sync path="06_failure_diagnostics.expected.txt" lang="text" -->
+
+```text
+unexpected return code 42
+fate: returncode=42, decision=no_intervention, method=none
+2 monitor failure(s) recorded:
+
+[1] stdout monitor #0 (FailsOnMarker) failed in process: RuntimeError: monitor failed on alpha
+[2] stdout monitor #1 (FailsOnMarker) failed in process: RuntimeError: monitor failed on beta
+
+Monitor failure details:
+
+[1] stdout monitor #0 (FailsOnMarker) failed in process
+Traceback (most recent call last):
+  File "<file>", line <n>, in <func>
+    self.monitor.process(data, ts)
+  File "<file>", line <n>, in <func>
+    raise RuntimeError(msg)
+RuntimeError: monitor failed on alpha
+
+[2] stdout monitor #1 (FailsOnMarker) failed in process
+Traceback (most recent call last):
+  File "<file>", line <n>, in <func>
+    self.monitor.process(data, ts)
+  File "<file>", line <n>, in <func>
+    raise RuntimeError(msg)
+RuntimeError: monitor failed on beta
 ```
 
 <!-- /readme-sync -->

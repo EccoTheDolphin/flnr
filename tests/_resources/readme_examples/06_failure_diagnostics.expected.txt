@@ -1,0 +1,24 @@
+unexpected return code 42
+fate: returncode=42, decision=no_intervention, method=none
+2 monitor failure(s) recorded:
+
+[1] stdout monitor #0 (FailsOnMarker) failed in process: RuntimeError: monitor failed on alpha
+[2] stdout monitor #1 (FailsOnMarker) failed in process: RuntimeError: monitor failed on beta
+
+Monitor failure details:
+
+[1] stdout monitor #0 (FailsOnMarker) failed in process
+Traceback (most recent call last):
+  File "<file>", line <n>, in <func>
+    self.monitor.process(data, ts)
+  File "<file>", line <n>, in <func>
+    raise RuntimeError(msg)
+RuntimeError: monitor failed on alpha
+
+[2] stdout monitor #1 (FailsOnMarker) failed in process
+Traceback (most recent call last):
+  File "<file>", line <n>, in <func>
+    self.monitor.process(data, ts)
+  File "<file>", line <n>, in <func>
+    raise RuntimeError(msg)
+RuntimeError: monitor failed on beta
