@@ -140,7 +140,10 @@ def main() -> int:
         _print_diff(original, updated, readme_path)
 
     if args.check:
-        return 1 if changed else 0
+        if changed:
+            err_msg = "unsynchronized changes in readme examples detected"
+            raise RuntimeError(err_msg)
+        return 0
 
     if changed:
         readme_path.write_text(updated, encoding="utf-8")
