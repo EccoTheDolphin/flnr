@@ -82,7 +82,7 @@ class SupervisionFailedError(ProcessExecutionError):
     or unreliable.
 
     This exception may indicate a serious failure in the execution environment
-    itself, as opposed to an ordinary failure of the supervised process
+    itself, as opposed to an ordinary failure of the supervised process.
     """
 
 

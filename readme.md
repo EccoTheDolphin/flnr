@@ -150,7 +150,7 @@ constraints are part of the design, not accidental omissions.
   confirmation arrives, `flnr.ProcessKillFailedError` is raised. Monitors are
   temporarily paused during the final wait to avoid prolonging teardown.
 
-- **Output buffering is environment-dependent:** currently, users have no
+- **Output buffering is environment-dependent:** Currently, users have no
   control over this behavior. Programs may switch between line-buffered,
   block-buffered, or unbuffered modes depending on whether stdout is
   connected to a TTY or a pipe. This directly affects how quickly data
@@ -163,13 +163,13 @@ constraints are part of the design, not accidental omissions.
   to exceed the configured limit, the monitor forcefully fragments it and emits
   the tail early.
 
-- **Unhandled Output Is Discarded:** child output is discarded unless it is
+- **Unhandled Output Is Discarded:** Child output is discarded unless it is
   routed to output monitors or bound to the parent stream with
   `flnr.BIND_TO_PARENT`. Configure `stdout_monitors` to observe stdout and, by
   default, stderr too; configure `stderr_monitors` when stderr should be handled
   separately. Parent-bound output is not observed by output monitors.
 
-- **Stdin Is Closed by Default:** child stdin is connected to `DEVNULL` by
+- **Stdin Defaults to DEVNULL:** Child stdin is connected to `DEVNULL` by
   default. Use `stdin=flnr.INHERIT_STDIN` for interactive commands that should
   read from the parent stdin.
 
@@ -289,8 +289,8 @@ fate = flnr.run_ex(
 > Python thread**.
 
 This temporarily installs SIGINT and SIGTERM handlers for the duration of the
-call. While this mode is active, SIGINT/SIGTERM are converted into
-child-termination requests from the host process. For example, Ctrl+C will not
+call. While this mode is active, SIGINT/SIGTERM make the host process request
+child termination. For example, Ctrl+C will not
 immediately raise `KeyboardInterrupt` in the caller. `flnr` owns those handlers
 while the process runs and restores the previous ones as soon as
 `flnr.run_ex()` returns.
