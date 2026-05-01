@@ -22,4 +22,8 @@ from .monitors import OutputMonitorDisableReason as OutputMonitorDisableReason
 from .mu import BinaryOutputMonitor as BinaryOutputMonitor
 from .mu import IncrementalLineSplitter as IncrementalLineSplitter
 from .mu import TextOutputMonitor as TextOutputMonitor
+from .stdio import BIND_TO_PARENT as BIND_TO_PARENT
+from .stdio import INHERIT_STDIN as INHERIT_STDIN
+from .stdio import BindToParent as BindToParent
+from .stdio import InheritStdin as InheritStdin
 from .timeouts import ExecutionTimeouts as ExecutionTimeouts

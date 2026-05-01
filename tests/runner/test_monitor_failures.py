@@ -258,7 +258,7 @@ def test_env_monitor_rogue_on_end(py_exec: PythonCmdBuilder) -> None:
 def test_merge_rejects_stderr_monitor(py_exec: PythonCmdBuilder) -> None:
     with pytest.raises(
         ValueError,
-        match="stderr monitors provided, while stdout/stderr merged",
+        match="stderr_monitors must be None when merge_std_streams=True",
     ):
         flnr.run_ex(
             py_exec("py_true.py"),
