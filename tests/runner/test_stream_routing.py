@@ -1,6 +1,5 @@
 import io
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
@@ -110,14 +109,6 @@ def test_stderr_bind_to_parent(
     assert captured.err == b"stderr output"
 
 
-@pytest.mark.xfail(
-    sys.platform.startswith("win"),
-    reason=(
-        "Windows asyncio does not merge stderr=STDOUT into inherited stdout; "
-        "workaround follows in a later commit"
-    ),
-    strict=True,
-)
 def test_stdout_bind_to_parent_default_merge(
     py_exec: PythonCmdBuilder, capfdbinary: pytest.CaptureFixture[bytes]
 ) -> None:

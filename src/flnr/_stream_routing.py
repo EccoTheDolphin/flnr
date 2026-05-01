@@ -1,4 +1,5 @@
 import asyncio
+import sys
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -44,6 +45,13 @@ def _target_for(route: _OutputRoute) -> int | None:
     return asyncio.subprocess.DEVNULL
 
 
+def _target_for_merged_stderr(stdout: int | None) -> int:
+    windows_parent_stdout_fd = 1
+    if stdout is None and sys.platform.startswith("win"):
+        return windows_parent_stdout_fd
+    return asyncio.subprocess.STDOUT
+
+
 def _resolve_std_stream_plan(
     *,
     merge_std_streams: bool | None,
@@ -62,7 +70,9 @@ def _resolve_std_stream_plan(
 
     stdout = _target_for(stdout_route)
     stderr = (
-        asyncio.subprocess.STDOUT if should_merge else _target_for(stderr_route)
+        _target_for_merged_stderr(stdout)
+        if should_merge
+        else _target_for(stderr_route)
     )
 
     return _StdStreamPlan(stdout=stdout, stderr=stderr)
