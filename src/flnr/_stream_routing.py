@@ -1,42 +1,68 @@
 import asyncio
+from collections.abc import Sequence
 from dataclasses import dataclass
+
+from .monitors import OutputMonitor
+from .stdio import BindToParent
+
+
+@dataclass(frozen=True)
+class _OutputRoute:
+    monitors: Sequence[OutputMonitor] = ()
+    tie_to_parent: bool = False
+
+    @property
+    def has_monitors(self) -> bool:
+        return bool(self.monitors)
+
+    @property
+    def active(self) -> bool:
+        return self.tie_to_parent or self.has_monitors
+
+
+def _resolve_output_stream_route(
+    value: Sequence[OutputMonitor] | BindToParent | None,
+) -> _OutputRoute:
+    if value is None:
+        return _OutputRoute(monitors=(), tie_to_parent=False)
+    if isinstance(value, BindToParent):
+        return _OutputRoute(monitors=(), tie_to_parent=True)
+    return _OutputRoute(monitors=value, tie_to_parent=False)
 
 
 @dataclass(frozen=True)
 class _StdStreamPlan:
-    stdout: int
-    stderr: int
+    stdout: int | None
+    stderr: int | None
+
+
+def _target_for(route: _OutputRoute) -> int | None:
+    if route.tie_to_parent:
+        return None
+    if route.has_monitors:
+        return asyncio.subprocess.PIPE
+    return asyncio.subprocess.DEVNULL
 
 
 def _resolve_std_stream_plan(
     *,
     merge_std_streams: bool | None,
-    has_stdout_monitors: bool,
-    has_stderr_monitors: bool,
+    stdout_route: _OutputRoute,
+    stderr_route: _OutputRoute,
 ) -> _StdStreamPlan:
-    if merge_std_streams is True and has_stderr_monitors:
-        error_msg = "stderr monitors provided, while stdout/stderr merged"
+    if merge_std_streams is True and stderr_route.active:
+        error_msg = "stderr_monitors must be None when merge_std_streams=True"
         raise ValueError(error_msg)
 
     should_merge = (
         merge_std_streams
         if merge_std_streams is not None
-        else has_stdout_monitors and not has_stderr_monitors
+        else stdout_route.active and not stderr_route.active
     )
 
-    stdout = (
-        asyncio.subprocess.PIPE
-        if has_stdout_monitors
-        else asyncio.subprocess.DEVNULL
+    stdout = _target_for(stdout_route)
+    stderr = (
+        asyncio.subprocess.STDOUT if should_merge else _target_for(stderr_route)
     )
-
-    if should_merge:
-        stderr = asyncio.subprocess.STDOUT
-    else:
-        stderr = (
-            asyncio.subprocess.PIPE
-            if has_stderr_monitors
-            else asyncio.subprocess.DEVNULL
-        )
 
     return _StdStreamPlan(stdout=stdout, stderr=stderr)

@@ -28,6 +28,25 @@ Monitor Interfaces
 .. automodule:: flnr.monitors
    :members:
 
+Stream Bindings
+---------------
+
+.. autoclass:: flnr.InheritStdin
+
+.. autoclass:: flnr.BindToParent
+
+.. data:: flnr.INHERIT_STDIN
+   :type: flnr.InheritStdin
+
+   Inherit stdin directly from parent.
+
+.. data:: flnr.BIND_TO_PARENT
+   :type: flnr.BindToParent
+
+   Bind child output directly to the corresponding parent stream.
+
+   Output routed this way is not observed by output monitors.
+
 Monitor Failures
 ----------------
 

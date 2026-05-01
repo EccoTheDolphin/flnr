@@ -163,10 +163,15 @@ constraints are part of the design, not accidental omissions.
   to exceed the configured limit, the monitor forcefully fragments it and emits
   the tail early.
 
-- **Unmonitored Output Is Discarded:** `flnr` captures child process output
-  only through configured output monitors; unmonitored output is discarded.
-  Configure `stdout_monitors` to observe stdout and, by default, stderr too;
-  configure `stderr_monitors` when stderr should be observed separately.
+- **Unhandled Output Is Discarded:** child output is discarded unless it is
+  routed to output monitors or bound to the parent stream with
+  `flnr.BIND_TO_PARENT`. Configure `stdout_monitors` to observe stdout and, by
+  default, stderr too; configure `stderr_monitors` when stderr should be handled
+  separately. Parent-bound output is not observed by output monitors.
+
+- **Stdin Is Closed by Default:** child stdin is connected to `DEVNULL` by
+  default. Use `stdin=flnr.INHERIT_STDIN` for interactive commands that should
+  read from the parent stdin.
 
 ## Error Handling
 

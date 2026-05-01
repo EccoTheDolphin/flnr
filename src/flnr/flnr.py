@@ -22,7 +22,11 @@ from ._observatory import (
     _reader_task,
     _ReaderTaskSignals,
 )
-from ._stream_routing import _resolve_std_stream_plan
+from ._stream_routing import (
+    _OutputRoute,
+    _resolve_output_stream_route,
+    _resolve_std_stream_plan,
+)
 from .exceptions import (
     CommandFailedError,
     MonitorFailedError,
@@ -45,6 +49,7 @@ from .monitors import (
     EnvironmentMonitor,
     OutputMonitor,
 )
+from .stdio import BindToParent, InheritStdin
 from .timeouts import (
     ExecutionTimeouts,
 )
@@ -56,8 +61,9 @@ class _RunnerArgs:
     cwd: Path | None
     env: Mapping[str, str]
     merge_std_streams: bool | None
-    stdout_monitors: Sequence[OutputMonitor]
-    stderr_monitors: Sequence[OutputMonitor]
+    stdout_route: _OutputRoute
+    stderr_route: _OutputRoute
+    stdin: InheritStdin | None
     environment_monitors: Sequence[EnvironmentMonitor]
     check: bool
     timeouts: ExecutionTimeouts
@@ -68,13 +74,18 @@ class _RunnerScope:
     async def _start_process(self) -> asyncio.subprocess.Process:
         stream_routing = _resolve_std_stream_plan(
             merge_std_streams=self.args.merge_std_streams,
-            has_stdout_monitors=len(self.args.stdout_monitors) > 0,
-            has_stderr_monitors=len(self.args.stderr_monitors) > 0,
+            stdout_route=self.args.stdout_route,
+            stderr_route=self.args.stderr_route,
         )
 
+        # flnr defaults differ from subprocess/asyncio: child stdin is closed
+        # unless the caller explicitly asks to inherit the parent's stdin.
+        stdin: int | None = (
+            asyncio.subprocess.DEVNULL if self.args.stdin is None else None
+        )
         return await asyncio.create_subprocess_exec(
             *self.args.cmd,
-            stdin=asyncio.subprocess.DEVNULL,
+            stdin=stdin,
             stdout=stream_routing.stdout,
             stderr=stream_routing.stderr,
             cwd=self.args.cwd,
@@ -152,7 +163,7 @@ class _RunnerScope:
             self.reader_stdout_task = self._create_reader_task(
                 self.process.stdout,
                 OutputStream.STDOUT,
-                self.args.stdout_monitors,
+                self.args.stdout_route.monitors,
                 "reader.stdout",
             )
 
@@ -160,7 +171,7 @@ class _RunnerScope:
             self.reader_stderr_task = self._create_reader_task(
                 self.process.stderr,
                 OutputStream.STDERR,
-                self.args.stderr_monitors,
+                self.args.stderr_route.monitors,
                 "reader.stderr",
             )
 
@@ -308,9 +319,10 @@ def run_ex(
     cwd: Path | None = None,
     merge_std_streams: bool | None = None,
     timeouts: ExecutionTimeouts | None = None,
-    stdout_monitors: Sequence[OutputMonitor] | None = None,
-    stderr_monitors: Sequence[OutputMonitor] | None = None,
+    stdout_monitors: Sequence[OutputMonitor] | BindToParent | None = None,
+    stderr_monitors: Sequence[OutputMonitor] | BindToParent | None = None,
     environment_monitors: Sequence[EnvironmentMonitor] | None = None,
+    stdin: InheritStdin | None = None,
     check: bool = True,
     host_termination: HostTerminationControlType = None,
 ) -> ProcessFate:
@@ -337,13 +349,17 @@ def run_ex(
     keep inherited file descriptors open, and continue producing output until
     ``output_drain`` expires.
 
-    By default, ``merge_std_streams=None`` routes output based on configured
-    monitors. ``stdout_monitors`` see stdout and, unless ``stderr_monitors``
-    are configured, stderr. Configuring ``stderr_monitors`` routes stderr
-    separately. Explicit ``merge_std_streams=True`` always merges stderr into
-    stdout and rejects ``stderr_monitors``. Explicit
-    ``merge_std_streams=False`` keeps stdout and stderr separate. Streams
-    without monitors are connected to ``DEVNULL``.
+    With ``merge_std_streams=None``, stdout handling receives stdout and,
+    unless stderr handling is configured, stderr too. Configure stderr handling
+    to keep stderr separate. Output handling means either output monitors or
+    ``flnr.BIND_TO_PARENT``. Parent-bound output is passed through instead of
+    monitored. Streams with no output handling are connected to ``DEVNULL``.
+    Explicit ``merge_std_streams=True`` always merges stderr into stdout and
+    rejects ``stderr_monitors``. Explicit ``merge_std_streams=False`` keeps
+    stdout and stderr separate.
+
+    Child stdin is connected to ``DEVNULL`` by default. Pass
+    ``stdin=flnr.INHERIT_STDIN`` to inherit stdin from the parent process.
 
     - ``None`` leaves host-driven termination handling disabled.
     - ``HostTerminationRequest.HOST_SIGNALS`` installs temporary SIGINT and
@@ -393,6 +409,10 @@ def run_ex(
         )
         raise RuntimeError(error_msg)
 
+    if stdin is not None and not isinstance(stdin, InheritStdin):
+        error_msg = "stdin must be None or flnr.INHERIT_STDIN"
+        raise TypeError(error_msg)
+
     if env is None:
         env = os.environ.copy()
 
@@ -401,8 +421,9 @@ def run_ex(
         env=env,
         cwd=cwd,
         merge_std_streams=merge_std_streams,
-        stdout_monitors=(stdout_monitors or []),
-        stderr_monitors=(stderr_monitors or []),
+        stdout_route=_resolve_output_stream_route(stdout_monitors),
+        stderr_route=_resolve_output_stream_route(stderr_monitors),
+        stdin=stdin,
         environment_monitors=(environment_monitors or []),
         check=check,
         timeouts=timeouts or ExecutionTimeouts(),
