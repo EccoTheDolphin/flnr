@@ -57,8 +57,8 @@ class OutputMonitor(ABC):  # pylint: disable=too-few-public-methods
     def process(self, data: bytes, ts: float) -> None:
         """Process data from subprocess output stream.
 
-        data comes with an associated timestamp that identifies the moment
-        when this was read from the stream.
+        The timestamp identifies when **flnr** read this chunk from the
+        stream.
         """
 
     def on_disable(  # noqa: B027

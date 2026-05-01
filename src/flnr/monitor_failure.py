@@ -31,7 +31,22 @@ class OutputStream(_StrEnum):
 
 @dataclass(frozen=True, slots=True)
 class MonitorFailure:
-    """Information about a monitor failure instance."""
+    """Information about one monitor callback failure.
+
+    Attributes:
+        monitor:
+            Monitor object that raised the exception.
+        hook:
+            Monitor callback that failed.
+        exception:
+            Exception raised by the monitor callback.
+        monitor_index:
+            Zero-based index of the monitor in the configured monitor list.
+        stream:
+            Output stream associated with an output monitor failure. ``None``
+            identifies an environment monitor failure.
+
+    """
 
     monitor: object
     hook: MonitorHook

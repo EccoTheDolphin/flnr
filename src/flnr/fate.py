@@ -23,8 +23,8 @@ class ProcessTerminationDecision(Enum):
             that the process must be stopped.
 
         EXTERNAL_REQUEST:
-            Host termination request was active. **flnr** therefore attempted
-            the terminate stage.
+            A host termination request was active. **flnr** therefore decided
+            that the process must be stopped.
 
         INTERNAL_FAILURE:
             **flnr** observed an unrecoverable internal failure while
