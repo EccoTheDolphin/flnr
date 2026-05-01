@@ -32,6 +32,14 @@ def test_runner_not_a_list_args() -> None:
         flnr.run_ex("/usr/bin/env")
 
 
+def test_runner_stdin_of_incorrect_type() -> None:
+    with pytest.raises(
+        TypeError,
+        match=re.escape("stdin must be None or flnr.INHERIT_STDIN"),
+    ):
+        flnr.run_ex(["/usr/bin/env"], stdin="lalala")  # type: ignore[arg-type]
+
+
 async def _run_inside_async_context(py_exec: PythonCmdBuilder) -> None:
     flnr.run_ex(py_exec("py_true.py"))
 
