@@ -1,5 +1,3 @@
-- bind stdout/stderr to parent. this is required for interactive tooling
-- explicit stdin binding. also for interactive tooling.
 - add observability (dump to log file) of trigger events (with timestamp).
 - add a way to query trigger state.
 - figure out how to deal with race condition of HOST_SIGNALS shortcut
