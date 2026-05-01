@@ -9,13 +9,13 @@ import pytest
 
 import flnr
 
-# NOTE: this test program targets low-level implementation details of asyncio
-# itself. It is heavily Linux-specific and relies on undocumented details of
-# asyncio itself. The purpose is to disturb asyncio transport layer operation
-# and see how the system works. After such tests are run, the driver state
-# becomes irrecoverably broken. We use the term "borken" for that. Given that
-# these tests delve into undocumented territory of the Python interpreter
-# itself, they are organized into a self-contained, self-checking program.
+# NOTE: this test program targets low-level implementation details of asyncio.
+# It is heavily Linux-specific and relies on undocumented details. The purpose
+# is to disturb asyncio transport layer operation and see how the system works.
+# After such tests are run, the driver state becomes irrecoverably broken. We
+# use the term "borken" for that. Given that these tests delve into
+# undocumented territory of the Python interpreter itself, they are organized
+# into a self-contained, self-checking program.
 
 
 class DummyOutputMonitor(flnr.OutputMonitor):

@@ -94,7 +94,7 @@ The library revolves around a small set of core types and interfaces:
 - `flnr.ProcessFate`: A structured final-state object that records the
   subprocess return code and the termination path.
 
-- `flnr.OutputMonitor`: receives stdout/stderr chunks as they arrive. The
+- `flnr.OutputMonitor`: Receives stdout/stderr chunks as they arrive. The
   library ships with built-in implementations such as `flnr.TextOutputMonitor`
   and `flnr.BinaryOutputMonitor`.
 

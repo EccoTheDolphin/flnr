@@ -78,8 +78,9 @@ class _RunnerScope:
             stderr_route=self.args.stderr_route,
         )
 
-        # flnr defaults differ from subprocess/asyncio: child stdin is closed
-        # unless the caller explicitly asks to inherit the parent's stdin.
+        # flnr defaults differ from subprocess/asyncio: child stdin is
+        # connected to DEVNULL unless the caller explicitly asks to inherit the
+        # parent's stdin.
         stdin: int | None = (
             asyncio.subprocess.DEVNULL if self.args.stdin is None else None
         )
