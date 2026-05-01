@@ -4,6 +4,8 @@ User-facing changes to `flnr` are documented here.
 
 ## Unreleased
 
+## 0.3.0 - 2026-05-01
+
 ### Added
 
 - inherited stdin and parent-bound output support
