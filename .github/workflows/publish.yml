@@ -37,6 +37,18 @@ jobs:
         with:
           enable-cache: true
 
+      - name: Check tag matches project version
+        run: |
+          tag_version="${GITHUB_REF_NAME#v}"
+          project_version="$(uv version --short)"
+
+          if [[ "$tag_version" != "$project_version" ]]; then
+            echo "release tag does not match project version"
+            echo "tag version:     $tag_version"
+            echo "project version: $project_version"
+            exit 1
+          fi
+
       - name: Check formatting
         run: uv run --frozen ./attic/repo.py format --check
 
