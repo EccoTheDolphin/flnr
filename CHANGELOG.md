@@ -4,6 +4,10 @@ User-facing changes to `flnr` are documented here.
 
 ## Unreleased
 
+### Added
+
+- added installation instructions.
+
 ## 0.2.1 - 2026-04-29
 
 ### Added

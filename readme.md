@@ -16,6 +16,7 @@
 
 - [`flnr`](#flnr)
   - [About](#about)
+  - [Installation](#installation)
   - [Raison d'être](#raison-d%C3%AAtre)
   - [Core Concepts](#core-concepts)
   - [Design Constraints](#design-constraints)
@@ -53,6 +54,14 @@ The library has **zero runtime dependencies** and exposes a synchronous API.
 It can replace direct `subprocess.run()` / `Popen` use when command execution
 needs observable output handling, explicit lifecycle control, and structured
 final-state reporting.
+
+## Installation
+
+```bash
+pip install flnr
+```
+
+Requires Python 3.10+.
 
 ## Raison d'être
 
