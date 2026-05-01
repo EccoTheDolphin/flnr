@@ -74,8 +74,8 @@ async def _stream_relay(
         out_event_fatal_error.set()
         raise
     finally:
-        # This is a bit hacky: we unconditionally call disable() on task exit
-        # and rely on the sink to affect only still-active monitors.
+        # disable() is idempotent for this sink, so calling it on every relay
+        # task exit gives a single finalization path.
         # After normal EOF this is effectively a no-op for already-disabled
         # monitors.
         # After an abnormal exit it finalizes any monitors that were left

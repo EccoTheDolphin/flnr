@@ -98,7 +98,7 @@ addopts = [
 ]
 markers = [
   "slow: marks tests as slow",
-  "stress: test tageting large amounts of data and memory consumption",
+  "stress: test targeting large amounts of data and memory consumption",
   "extra: marks tests that check for an extended set of situations",
 ]
 

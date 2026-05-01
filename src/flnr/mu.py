@@ -79,8 +79,8 @@ class IncrementalLineSplitter:
             self._start = i + 1
 
         # If buffered trailing data grows too large, emit the remaining tail
-        # early.  This preserves data while preventing unbounded carry-over
-        # growth
+        # early. This preserves data while preventing unbounded carry-over
+        # growth.
         if (len(self._buf) - self._start) > self._buffer_sz_limit:
             tail = self._buf[self._start :]
             lines.append(bytes(tail))
