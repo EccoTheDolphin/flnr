@@ -41,7 +41,7 @@ class ExecutionTimeouts:
 
     *If the ``run`` timeout expires:*
 
-    1. **Graceful termination**: The process is asked to terminate and given
+    1. **Terminate stage**: The process is asked to terminate and given
        ``terminate`` seconds to exit on its own. Monitors continue to run
        during this phase so final logs and state can be captured.
     2. **Forced kill**: If the process does not exit within the ``terminate``
@@ -50,8 +50,8 @@ class ExecutionTimeouts:
     *If flnr encounters an unrecoverable internal failure while reading
     process output:*
 
-    - The process is forcibly terminated immediately, without a graceful
-      termination attempt.
+    - The process is forcibly terminated immediately, without attempting
+      the terminate stage.
 
     *After the forced kill (in either case):*
 

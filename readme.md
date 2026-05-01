@@ -227,8 +227,8 @@ print(fate)
 ### Host termination
 
 `flnr` provides a stable, sticky trigger source called
-`flnr.HostTerminationRequest` to let the host gracefully terminate a running
-command.
+`flnr.HostTerminationRequest` to let the host process request termination of a
+running command.
 
 Once triggered, the request remains active. Any run attached to an
 already-triggered request will observe termination immediately upon startup.
@@ -244,7 +244,7 @@ import flnr
 
 terminator = flnr.HostTerminationRequest()
 # SIGINT causes the trigger to fire, which causes the subprocess to enter
-# the graceful termination procedure defined by `flnr`.
+# the terminate stage defined by `flnr`.
 signal.signal(signal.SIGINT, lambda _, __: terminator.trigger())
 
 fate = flnr.run_ex(
@@ -263,9 +263,9 @@ fate = flnr.run_ex(
 > Attaching to an already-triggered request does not prevent process creation
 > ahead of time. The run observes termination as soon as supervision starts.
 
-For simple CLI scripts that just want graceful termination without explicit
-signal management, `flnr` offers `flnr.HostTerminationRequest.HOST_SIGNALS` as
-a convenience shortcut:
+For simple CLI scripts that want signal-triggered child termination without
+explicit signal management, `flnr` offers
+`flnr.HostTerminationRequest.HOST_SIGNALS` as a convenience shortcut:
 
 <!-- readme-sync path="03_host_signals.py" lang="python" -->
 
@@ -274,8 +274,7 @@ import flnr
 
 # Unix-only example.
 # Once the subprocess starts, SIGTERM or SIGINT sent to the host process will
-# cause the child to undergo the graceful termination procedure defined by
-# `flnr`.
+# cause the child to enter the terminate stage defined by `flnr`.
 fate = flnr.run_ex(
     ["make", "integration-tests"],
     host_termination=flnr.HostTerminationRequest.HOST_SIGNALS,
@@ -290,10 +289,11 @@ fate = flnr.run_ex(
 > Python thread**.
 
 This temporarily installs SIGINT and SIGTERM handlers for the duration of the
-call. While this mode is active, SIGINT/SIGTERM are converted into graceful
-termination requests for the child. For example, Ctrl+C will not immediately
-raise `KeyboardInterrupt` in the caller. `flnr` owns those handlers while the
-process runs and restores the previous ones as soon as `flnr.run_ex()` returns.
+call. While this mode is active, SIGINT/SIGTERM are converted into
+child-termination requests from the host process. For example, Ctrl+C will not
+immediately raise `KeyboardInterrupt` in the caller. `flnr` owns those handlers
+while the process runs and restores the previous ones as soon as
+`flnr.run_ex()` returns.
 
 ### Output monitoring
 
