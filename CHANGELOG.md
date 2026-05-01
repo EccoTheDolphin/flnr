@@ -51,7 +51,7 @@ Initial beta release.
 - structured `ProcessFate` final-state reporting.
 - stdout/stderr output monitors.
 - environment monitor lifecycle hooks.
-- timeout escalation from graceful termination to forced kill.
+- timeout escalation from terminate stage to forced kill.
 - state-preserving execution exceptions.
 - host termination support on supported platforms.
 - zero-runtime-dependency packaging for Python 3.10+.

@@ -4,7 +4,7 @@ import flnr
 
 terminator = flnr.HostTerminationRequest()
 # SIGINT causes the trigger to fire, which causes the subprocess to enter
-# the graceful termination procedure defined by `flnr`.
+# the terminate stage defined by `flnr`.
 signal.signal(signal.SIGINT, lambda _, __: terminator.trigger())
 
 fate = flnr.run_ex(
