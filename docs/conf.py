@@ -7,6 +7,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 import os
 import sys
+from enum import Enum
 from pathlib import Path
 
 if sys.version_info < (3, 11):
@@ -68,3 +69,21 @@ autosummary_generate = True
 nitpicky = False
 
 sys.path.insert(0, str(ROOT / "src"))
+
+
+def _hide_enum_constructor_signature(
+    _app,
+    what,
+    _name,
+    obj,
+    _options,
+    _signature,
+    return_annotation,
+):
+    if what == "class" and isinstance(obj, type) and issubclass(obj, Enum):
+        return ("", return_annotation)
+    return None
+
+
+def setup(app):
+    app.connect("autodoc-process-signature", _hide_enum_constructor_signature)
