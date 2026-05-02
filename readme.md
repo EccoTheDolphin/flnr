@@ -40,7 +40,7 @@
 
 ## About
 
-**flnr** is a small subprocess supervision harness for CI and automation code.
+**flnr** is a small library for supervising subprocesses in CI and automation code.
 It runs a direct child process, routes output through user-supplied monitors,
 escalates timeouts, records final process state, and preserves monitor
 failures as part of the final execution result.
