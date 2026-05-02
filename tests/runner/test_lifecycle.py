@@ -1,14 +1,17 @@
-import io
-import os
 import signal
 import sys
 import time
+from pathlib import Path
 
 import pytest
 
 import flnr
 from tests._support import moirai
-from tests._support.probes import OutputMonitorProbe
+from tests._support.events import child_drain
+from tests._support.output_forwarding import (
+    OutputForwardingRunner,
+    OutputForwardingTimings,
+)
 from tests._support.utils import (
     PythonCmdBuilder,
     return_code_for_sigterm,
@@ -33,30 +36,38 @@ def _run_timeout_duration_test(
 
 
 def _run_timeout_when_child_activated(
-    py_exec: PythonCmdBuilder, *, check: bool
+    py_exec: PythonCmdBuilder, tmp_path: Path, *, check: bool
 ) -> flnr.ProcessFate:
-    bin_output = io.BytesIO()
     run_timeout = 5
     tick_count = 10
     run_duration = run_timeout * 4
-    try:
-        return flnr.run_ex(
-            py_exec("output_forwarding.py"),
-            timeouts=flnr.ExecutionTimeouts(
-                run=5.0, output_drain=1, terminate=1
-            ),
-            env=os.environ
-            | {
-                "MAIN_TERMINATION_DELAY": str(run_duration),
-                "CHILD_TICK_DELAY": str(0.1),
-                "CHILD_TICK_COUNT": str(tick_count),
-                "CHILD_TERMINATION_DELAY": str(run_duration),
-            },
-            stdout_monitors=[OutputMonitorProbe(sink=bin_output)],
-            check=check,
-        )
-    finally:
-        assert len(bin_output.getvalue().splitlines()) > tick_count
+    runner = OutputForwardingRunner(py_exec, tmp_path)
+    fate, outlines = runner.run_until_trace_shape(
+        expected_disable_reason=flnr.OutputMonitorDisableReason.DRAIN_TIMEOUT,
+        stderr_merged=True,
+        timings=[
+            OutputForwardingTimings(
+                timeouts=flnr.ExecutionTimeouts(
+                    run=run_timeout, output_drain=1, terminate=1
+                ),
+                parent_process_delay=run_duration,
+                child_tick_delay=0.1,
+                child_tick_count=tick_count,
+                child_termination_delay=run_duration,
+            )
+        ],
+        present_events=[
+            child_drain.EventSystem.SUPERVISED_RELEASED_STDO,
+            child_drain.EventSystem.DESCENDANT_DATA_END,
+        ],
+        absent_events=[
+            child_drain.EventSystem.SUPERVISED_CLOSING,
+            child_drain.EventSystem.DESCENDANT_SAID_BYE,
+        ],
+        check=check,
+    )
+    assert len(outlines) > tick_count
+    return fate
 
 
 def test_runner_success(py_exec: PythonCmdBuilder) -> None:
@@ -135,12 +146,14 @@ def test_runner_timeout_10seconds(py_exec: PythonCmdBuilder) -> None:
     _run_timeout_duration_test(py_exec, 10)
 
 
-def test_runner_timeout_sigterm_live_child(py_exec: PythonCmdBuilder) -> None:
+def test_runner_timeout_sigterm_live_child(
+    py_exec: PythonCmdBuilder, tmp_path: Path
+) -> None:
     with pytest.raises(
         flnr.CommandFailedError,
         match=f"unexpected return code {return_code_for_sigterm()}\n",
     ) as excinfo:
-        _run_timeout_when_child_activated(py_exec, check=True)
+        _run_timeout_when_child_activated(py_exec, tmp_path, check=True)
     assert excinfo.value.fate == moirai.fate_timeout_terminate(
         return_code_for_sigterm()
     )
@@ -148,8 +161,9 @@ def test_runner_timeout_sigterm_live_child(py_exec: PythonCmdBuilder) -> None:
 
 def test_runner_timeout_sigterm_noexc_live_child(
     py_exec: PythonCmdBuilder,
+    tmp_path: Path,
 ) -> None:
-    fate = _run_timeout_when_child_activated(py_exec, check=False)
+    fate = _run_timeout_when_child_activated(py_exec, tmp_path, check=False)
     assert fate == moirai.fate_timeout_terminate(return_code_for_sigterm())
 
 

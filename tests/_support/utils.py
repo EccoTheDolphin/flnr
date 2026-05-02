@@ -1,12 +1,24 @@
 import math
+import os
 import platform
 import signal
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Protocol, TypeVar
 
 TEST_DIR_ROOT = Path(__file__).resolve().parent.parent
 
 ExcKindType = TypeVar("ExcKindType", bound=BaseException)
+
+
+def pythonpath_env(repo_root: Path, base: Mapping[str, str]) -> dict[str, str]:
+    existing = base.get("PYTHONPATH")
+    if existing:
+        pythonpath = os.pathsep.join([str(repo_root), existing])
+    else:
+        pythonpath = str(repo_root)
+
+    return {"PYTHONPATH": pythonpath}
 
 
 class ExceptionMutator(Protocol):
