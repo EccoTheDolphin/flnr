@@ -64,7 +64,7 @@ class _RunnerArgs:
     stdout_route: _OutputRoute
     stderr_route: _OutputRoute
     stdin: InheritStdin | None
-    environment_monitors: Sequence[EnvironmentMonitor]
+    environment_monitors: tuple[EnvironmentMonitor, ...]
     check: bool
     timeouts: ExecutionTimeouts
     host_termination: HostTerminationControlType = None
@@ -123,7 +123,7 @@ class _RunnerScope:
         self,
         sr: asyncio.StreamReader,
         stream_id: OutputStream,
-        monitors: Sequence[OutputMonitor],
+        monitors: tuple[OutputMonitor, ...],
         name: str,
     ) -> asyncio.Task[Any]:
         return asyncio.create_task(
@@ -303,6 +303,23 @@ class _RunnerScope:
         return process_fate
 
 
+def _freeze_environment_monitors(
+    value: Sequence[EnvironmentMonitor] | None,
+) -> tuple[EnvironmentMonitor, ...]:
+    if value is None:
+        return ()
+
+    frozen = tuple(value)
+    for monitor in frozen:
+        if not isinstance(monitor, EnvironmentMonitor):
+            error_msg = (
+                "environment_monitors must contain only "
+                f"EnvironmentMonitor instances, got {type(monitor).__name__}"
+            )
+            raise TypeError(error_msg)
+    return frozen
+
+
 async def _run_ex_async(
     args: _RunnerArgs,
 ) -> ProcessFate:
@@ -425,7 +442,7 @@ def run_ex(
         stdout_route=_resolve_output_stream_route(stdout_monitors),
         stderr_route=_resolve_output_stream_route(stderr_monitors),
         stdin=stdin,
-        environment_monitors=(environment_monitors or []),
+        environment_monitors=_freeze_environment_monitors(environment_monitors),
         check=check,
         timeouts=timeouts or ExecutionTimeouts(),
         host_termination=host_termination,

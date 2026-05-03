@@ -40,6 +40,54 @@ def test_runner_stdin_of_incorrect_type() -> None:
         flnr.run_ex(["/usr/bin/env"], stdin="lalala")  # type: ignore[arg-type]
 
 
+def test_runner_stdout_monitor_incorrect_type(
+    py_exec: PythonCmdBuilder,
+) -> None:
+    with pytest.raises(
+        TypeError,
+        match=re.escape(
+            "output monitor sequence must contain only OutputMonitor "
+            "instances, got str"
+        ),
+    ):
+        flnr.run_ex(
+            py_exec("py_true.py"),
+            stdout_monitors=["string"],  # type: ignore[list-item]
+        )
+
+
+def test_runner_stderr_monitor_incorrect_type(
+    py_exec: PythonCmdBuilder,
+) -> None:
+    with pytest.raises(
+        TypeError,
+        match=re.escape(
+            "output monitor sequence must contain only OutputMonitor "
+            "instances, got str"
+        ),
+    ):
+        flnr.run_ex(
+            py_exec("py_true.py"),
+            stderr_monitors=["string"],  # type: ignore[list-item]
+        )
+
+
+def test_runner_environment_monitor_incorrect_type(
+    py_exec: PythonCmdBuilder,
+) -> None:
+    with pytest.raises(
+        TypeError,
+        match=re.escape(
+            "environment_monitors must contain only EnvironmentMonitor "
+            "instances, got str"
+        ),
+    ):
+        flnr.run_ex(
+            py_exec("py_true.py"),
+            environment_monitors=["string"],  # type: ignore[list-item]
+        )
+
+
 async def _run_inside_async_context(py_exec: PythonCmdBuilder) -> None:
     flnr.run_ex(py_exec("py_true.py"))
 
