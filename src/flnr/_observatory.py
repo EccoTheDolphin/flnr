@@ -23,7 +23,7 @@ _READER_TASK_CHUNK_SIZE = 64 * 1024
 class _StreamEventsSink:
     def __init__(
         self,
-        monitors: Sequence[OutputMonitor],
+        monitors: tuple[OutputMonitor, ...],
         monitor_failures: list[MonitorFailure],
         stream_id: OutputStream,
     ) -> None:
@@ -103,7 +103,7 @@ async def _reader_task(
     sr: asyncio.StreamReader,
     stream_id: OutputStream,
     drain_timeout: float,
-    monitors: Sequence[OutputMonitor],
+    monitors: tuple[OutputMonitor, ...],
     monitor_failures: list[MonitorFailure],
     control: _ReaderTaskSignals,
 ) -> None:

@@ -9,8 +9,8 @@ from .stdio import BindToParent
 
 @dataclass(frozen=True)
 class _OutputRoute:
-    monitors: Sequence[OutputMonitor] = ()
-    tie_to_parent: bool = False
+    monitors: tuple[OutputMonitor, ...]
+    tie_to_parent: bool
 
     @property
     def has_monitors(self) -> bool:
@@ -21,6 +21,20 @@ class _OutputRoute:
         return self.tie_to_parent or self.has_monitors
 
 
+def _freeze_output_monitors(
+    monitor_sequence: Sequence[OutputMonitor],
+) -> tuple[OutputMonitor, ...]:
+    frozen_monitors = tuple(monitor_sequence)
+    for monitor in frozen_monitors:
+        if not isinstance(monitor, OutputMonitor):
+            error_msg = (
+                "output monitor sequence must contain only "
+                f"OutputMonitor instances, got {type(monitor).__name__}"
+            )
+            raise TypeError(error_msg)
+    return frozen_monitors
+
+
 def _resolve_output_stream_route(
     value: Sequence[OutputMonitor] | BindToParent | None,
 ) -> _OutputRoute:
@@ -28,7 +42,9 @@ def _resolve_output_stream_route(
         return _OutputRoute(monitors=(), tie_to_parent=False)
     if isinstance(value, BindToParent):
         return _OutputRoute(monitors=(), tie_to_parent=True)
-    return _OutputRoute(monitors=value, tie_to_parent=False)
+    return _OutputRoute(
+        monitors=_freeze_output_monitors(value), tie_to_parent=False
+    )
 
 
 @dataclass(frozen=True)
