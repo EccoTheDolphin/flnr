@@ -527,3 +527,10 @@ uv sync
 
 **Note:** The uv workflow provides full testing support and includes formatting
 and linting tools available on PyPI.
+
+Mutation testing, local profile:
+
+```bash
+rm -rf mutants
+uv run --group mutation mutmut run --max-children 16
+```

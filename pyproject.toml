@@ -206,3 +206,21 @@ line-length = 80
 profile = "black"
 line_length = 80
 skip_gitignore = true
+
+
+[tool.mutmut]
+paths_to_mutate = ["src/flnr"]
+do_not_mutate = [
+    # mutating of enum breaks python runtime
+    "src/flnr/monitor_failure.py",
+]
+pytest_add_cli_args_test_selection = [
+  "-m",
+  "not slow and not stress",
+]
+pytest_add_cli_args = [
+  "-n", "0",
+  "--no-cov",
+  "--timeout=300",
+  "--timeout-method=thread",
+]
