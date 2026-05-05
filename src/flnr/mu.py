@@ -69,14 +69,17 @@ class IncrementalLineSplitter:
         lines = []
 
         while True:
-            i = self._buf.find(b"\n", self._start)
-            if i == -1:
+            line_start = self._start
+            newline_pos = self._buf.find(b"\n", line_start)
+            if newline_pos == -1:
                 break
+            line_end = newline_pos + 1
 
-            line = self._buf[self._start : i + 1]
+            line = self._buf[line_start:line_end]
             lines.append(bytes(line))
 
-            self._start = i + 1
+            self._start = line_end
+            assert self._start > line_start
 
         # If buffered trailing data grows too large, emit the remaining tail
         # early. This preserves data while preventing unbounded carry-over
