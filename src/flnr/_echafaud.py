@@ -3,11 +3,11 @@
 import asyncio
 from dataclasses import dataclass
 
-from ._async_utils import _cancel_tasks
 from ._process_utils import (
     _effective_death_confirmation_timeout,
     _wait_for_process_exit,
 )
+from ._task_ledger import _TaskLedger
 from .fate import (
     ProcessFate,
     ProcessTerminationDecision,
@@ -33,20 +33,19 @@ async def _resolve_process_fate(
     process: asyncio.subprocess.Process, scope: _ProcessLifecycleScope
 ) -> ProcessFate:
 
-    process_exit_task = None
-    fatal_reader_error_task = None
-    ext_termination_request_task = None
+    task_ledger = _TaskLedger()
     try:
         # note for python 3.11 transition: tasks should be created via task
         # group
-        process_exit_task = asyncio.create_task(
-            _wait_for_process_exit(process), name="echafaud.process_exit"
+        process_exit_task = task_ledger.create_task(
+            _wait_for_process_exit(process),
+            name="echafaud.process_exit",
         )
-        fatal_reader_error_task = asyncio.create_task(
+        fatal_reader_error_task = task_ledger.create_task(
             scope.fatal_reader_error.wait(),
             name="echafaud.fatal_reader_error",
         )
-        ext_termination_request_task = asyncio.create_task(
+        ext_termination_request_task = task_ledger.create_task(
             scope.ext_termination_request.wait(),
             name="echafaud.ext_termination_request",
         )
@@ -115,11 +114,7 @@ async def _resolve_process_fate(
             assert not scope.monitor_callbacks_allowed.is_set()
             scope.monitor_callbacks_allowed.set()
     finally:
-        await _cancel_tasks(
-            ext_termination_request_task,
-            process_exit_task,
-            fatal_reader_error_task,
-        )
+        await task_ledger.cancel_all()
 
     return ProcessFate(
         termination_decision=termination_decision,
