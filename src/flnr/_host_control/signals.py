@@ -19,13 +19,14 @@ class _ExternalTerminationInterposer:
         self, signo_set: Sequence[signal.Signals], ext_rq: asyncio.Event
     ) -> None:
         self._handled_signals = tuple(signo_set)
-        self._old_handlers: dict[signal.Signals, _SignalHandler] = {}
+        self._old_handlers: dict[signal.Signals, _SignalHandler] | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
         self._event = ext_rq
 
     def activate(self) -> None:
         assert threading.current_thread() is threading.main_thread()
         assert self._loop is None
+        assert self._old_handlers is None
         self._old_handlers = {}
         self._loop = asyncio.get_running_loop()
         for signo in self._handled_signals:
@@ -34,5 +35,6 @@ class _ExternalTerminationInterposer:
     def deactivate(self) -> None:
         assert threading.current_thread() is threading.main_thread()
         assert self._loop is not None
+        assert self._old_handlers is not None
         for signo in self._handled_signals:
             signal.signal(signo, self._old_handlers[signo])
