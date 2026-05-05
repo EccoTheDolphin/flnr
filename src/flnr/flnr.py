@@ -10,7 +10,6 @@ from pathlib import Path
 from types import TracebackType
 from typing import Any
 
-from ._async_utils import _cancel_tasks
 from ._echafaud import (
     _attempt_to_kill,
     _ProcessLifecycleScope,
@@ -27,6 +26,7 @@ from ._stream_routing import (
     _resolve_output_stream_route,
     _resolve_std_stream_plan,
 )
+from ._task_ledger import _TaskLedger
 from .exceptions import (
     CommandFailedError,
     MonitorFailedError,
@@ -97,6 +97,7 @@ class _RunnerScope:
         self.args = args
         self.process: asyncio.subprocess.Process | None = None
 
+        self.task_ledger = _TaskLedger()
         self.reader_stdout_task: asyncio.Task[None] | None = None
         self.reader_stderr_task: asyncio.Task[None] | None = None
         self.process_fate_task: asyncio.Task[ProcessFate] | None = None
@@ -126,7 +127,7 @@ class _RunnerScope:
         monitors: tuple[OutputMonitor, ...],
         name: str,
     ) -> asyncio.Task[Any]:
-        return asyncio.create_task(
+        return self.task_ledger.create_task(
             _reader_task(
                 sr=sr,
                 stream_id=stream_id,
@@ -138,13 +139,23 @@ class _RunnerScope:
             name=name,
         )
 
+    def _create_process_fate_task(
+        self,
+        process: asyncio.subprocess.Process,
+        lifecycle_scope: _ProcessLifecycleScope,
+    ) -> asyncio.Task[ProcessFate]:
+        return self.task_ledger.create_task(
+            _resolve_process_fate(process, lifecycle_scope),
+            name="process_fate",
+        )
+
     def _create_environment_monitor_task(
         self,
         monitor: EnvironmentMonitor,
         monitor_index: int,
         scope: _EnvironmentMonitorScope,
     ) -> asyncio.Task[Any]:
-        return asyncio.create_task(
+        return self.task_ledger.create_task(
             _env_monitor_task(
                 monitor=monitor,
                 monitor_index=monitor_index,
@@ -176,17 +187,14 @@ class _RunnerScope:
                 "reader.stderr",
             )
 
-        self.process_fate_task = asyncio.create_task(
-            _resolve_process_fate(
-                self.process,
-                _ProcessLifecycleScope(
-                    fatal_reader_error=self.reader_ctrl.fatal_reader_error,
-                    monitor_callbacks_allowed=self.monitor_callbacks_allowed,
-                    ext_termination_request=self.ext_termination_request,
-                    timeouts=self.args.timeouts,
-                ),
+        self.process_fate_task = self._create_process_fate_task(
+            self.process,
+            _ProcessLifecycleScope(
+                fatal_reader_error=self.reader_ctrl.fatal_reader_error,
+                monitor_callbacks_allowed=self.monitor_callbacks_allowed,
+                ext_termination_request=self.ext_termination_request,
+                timeouts=self.args.timeouts,
             ),
-            name="process_fate",
         )
 
         env_mon_scope = _EnvironmentMonitorScope(
@@ -212,12 +220,7 @@ class _RunnerScope:
             # next, we kill subprocess since it is the most expensive object
             if self.process is not None:
                 _attempt_to_kill(self.process)
-            await _cancel_tasks(
-                self.process_fate_task,
-                *self.env_monitor_tasks,
-                self.reader_stderr_task,
-                self.reader_stdout_task,
-            )
+            await self.task_ledger.cancel_all()
 
     async def __aenter__(self) -> "_RunnerScope":
         try:

@@ -8,6 +8,7 @@ from typing import Any
 
 from ._async_utils import _cancel_tasks
 from ._monitor_handles import _EnvironmentMonitorHandle, _OutputMonitorHandle
+from ._task_ledger import _TaskLedger
 from .fate import ProcessFate
 from .monitor_failure import MonitorFailure, OutputStream
 from .monitors import (
@@ -113,8 +114,9 @@ async def _reader_task(
     self_name = self_task.get_name()
 
     event_sink = _StreamEventsSink(monitors, monitor_failures, stream_id)
+    task_ledger = _TaskLedger()
 
-    relay_task = asyncio.create_task(
+    relay_task = task_ledger.create_task(
         _stream_relay(
             sr,
             event_sink,
@@ -124,7 +126,7 @@ async def _reader_task(
         name=f"{self_name}.relay",
     )
 
-    reader_drain_controller_task = asyncio.create_task(
+    reader_drain_controller_task = task_ledger.create_task(
         _drain_controller(
             relay_task, event_sink, control.drain_requested, drain_timeout
         ),
@@ -134,7 +136,7 @@ async def _reader_task(
     try:
         await asyncio.gather(reader_drain_controller_task, relay_task)
     finally:
-        await _cancel_tasks(reader_drain_controller_task, relay_task)
+        await task_ledger.cancel_all()
 
 
 @dataclass(frozen=True, slots=True)
