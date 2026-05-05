@@ -79,6 +79,13 @@ def test_ils_buffer_limit() -> None:
     assert ils.feed(b"xadef") == [b"56xadef"]
 
 
+def test_ils_smallest_buffer_limit() -> None:
+    ils = IncrementalLineSplitter(buffer_limit=1)
+    assert ils.feed(b"123") == [b"123"]
+    assert ils.feed(b"6") == []
+    assert ils.feed(b"345") == [b"6345"]
+
+
 def test_ils_validation() -> None:
     for incorrect_value in [0, -1]:
         with pytest.raises(
