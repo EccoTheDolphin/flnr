@@ -159,7 +159,7 @@ async def _env_monitor_task(
         monitor_failures=scope.monitor_failures,
     )
     await scope.monitor_callbacks_allowed.wait()
-    monitor_handle.on_start(scope.pid, scope.cmd)
+    monitor_handle.on_start(scope.pid, list(scope.cmd))
     if not monitor_handle.is_active:
         return
 

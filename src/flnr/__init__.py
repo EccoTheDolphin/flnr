@@ -1,5 +1,7 @@
 """flnr (le flâneur)."""
 
+from .command_tracing import CommandTracer as CommandTracer
+from .command_tracing import CommandTracerProtocol as CommandTracerProtocol
 from .exceptions import CommandFailedError as CommandFailedError
 from .exceptions import MonitorFailedError as MonitorFailedError
 from .exceptions import ProcessExecutionError as ProcessExecutionError

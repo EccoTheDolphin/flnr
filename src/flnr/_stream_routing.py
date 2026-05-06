@@ -48,7 +48,7 @@ def _resolve_output_stream_route(
 
 
 @dataclass(frozen=True)
-class _StdStreamPlan:
+class _OutputStreamTargets:
     stdout: int | None
     stderr: int | None
 
@@ -68,12 +68,12 @@ def _target_for_merged_stderr(stdout: int | None) -> int:
     return asyncio.subprocess.STDOUT
 
 
-def _resolve_std_stream_plan(
+def _resolve_output_stream_targets(
     *,
     merge_std_streams: bool | None,
     stdout_route: _OutputRoute,
     stderr_route: _OutputRoute,
-) -> _StdStreamPlan:
+) -> _OutputStreamTargets:
     if merge_std_streams is True and stderr_route.active:
         error_msg = "stderr_monitors must be None when merge_std_streams=True"
         raise ValueError(error_msg)
@@ -91,4 +91,4 @@ def _resolve_std_stream_plan(
         else _target_for(stderr_route)
     )
 
-    return _StdStreamPlan(stdout=stdout, stderr=stderr)
+    return _OutputStreamTargets(stdout=stdout, stderr=stderr)

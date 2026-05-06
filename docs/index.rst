@@ -65,6 +65,26 @@ Host Control
 .. automodule:: flnr.host_control
    :members:
 
+Command Tracing
+---------------
+
+.. autoclass:: flnr.CommandTracerProtocol
+   :members:
+
+.. autoclass:: flnr.CommandTracer
+   :members:
+
+.. autoclass:: flnr.command_tracing.EnvListing
+   :members:
+
+.. autofunction:: flnr.command_tracing.list_changed_environment
+
+.. autofunction:: flnr.command_tracing.list_recreated_environment
+
+.. autofunction:: flnr.command_tracing.list_selected_environment
+
+.. autofunction:: flnr.command_tracing.list_no_environment
+
 Monitoring Utilities
 --------------------
 

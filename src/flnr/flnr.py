@@ -23,10 +23,12 @@ from ._observatory import (
 )
 from ._stream_routing import (
     _OutputRoute,
+    _OutputStreamTargets,
     _resolve_output_stream_route,
-    _resolve_std_stream_plan,
+    _resolve_output_stream_targets,
 )
 from ._task_ledger import _TaskLedger
+from .command_tracing.protocol import CommandTracerProtocol
 from .exceptions import (
     CommandFailedError,
     MonitorFailedError,
@@ -57,12 +59,12 @@ from .timeouts import (
 
 @dataclass(frozen=True)
 class _RunnerArgs:
-    cmd: Sequence[str]
+    cmd: tuple[str, ...]
     cwd: Path | None
     env: Mapping[str, str]
-    merge_std_streams: bool | None
     stdout_route: _OutputRoute
     stderr_route: _OutputRoute
+    output_stream_targets: _OutputStreamTargets
     stdin: InheritStdin | None
     environment_monitors: tuple[EnvironmentMonitor, ...]
     check: bool
@@ -72,12 +74,6 @@ class _RunnerArgs:
 
 class _RunnerScope:
     async def _start_process(self) -> asyncio.subprocess.Process:
-        stream_routing = _resolve_std_stream_plan(
-            merge_std_streams=self.args.merge_std_streams,
-            stdout_route=self.args.stdout_route,
-            stderr_route=self.args.stderr_route,
-        )
-
         # flnr defaults differ from subprocess/asyncio: child stdin is
         # connected to DEVNULL unless the caller explicitly asks to inherit the
         # parent's stdin.
@@ -87,8 +83,8 @@ class _RunnerScope:
         return await asyncio.create_subprocess_exec(
             *self.args.cmd,
             stdin=stdin,
-            stdout=stream_routing.stdout,
-            stderr=stream_routing.stderr,
+            stdout=self.args.output_stream_targets.stdout,
+            stderr=self.args.output_stream_targets.stderr,
             cwd=self.args.cwd,
             env=self.args.env,
         )
@@ -323,6 +319,109 @@ def _freeze_environment_monitors(
     return frozen
 
 
+def _ensure_no_running_loop() -> None:
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return
+
+    error_msg = "run_ex() cannot be called from an async context"
+    raise RuntimeError(error_msg)
+
+
+def _prepare_runner_args(
+    cmd: Sequence[str | Path],
+    *,
+    env: Mapping[str, str] | None,
+    cwd: Path | None,
+    merge_std_streams: bool | None,
+    stdout_monitors: Sequence[OutputMonitor] | BindToParent | None,
+    stderr_monitors: Sequence[OutputMonitor] | BindToParent | None,
+    environment_monitors: Sequence[EnvironmentMonitor] | None,
+    stdin: InheritStdin | None,
+    check: bool,
+    timeouts: ExecutionTimeouts | None,
+    host_termination: HostTerminationControlType,
+) -> _RunnerArgs:
+    if not cmd:
+        error_msg = "cmd must not be empty"
+        raise ValueError(error_msg)
+
+    if isinstance(cmd, (str, bytes, bytearray, memoryview)):
+        error_msg = (
+            "cmd must be a sequence of argument items, not a string-like object"
+        )
+        raise TypeError(error_msg)
+
+    if not _is_host_termination_object(host_termination):
+        error_msg = (
+            f"unexpected type for host_termination object {host_termination}"
+        )
+        raise TypeError(error_msg)
+
+    _validate_host_termination_support(host_termination, sys.platform)
+
+    if (host_termination is HostTerminationRequest.HOST_SIGNALS) and (
+        threading.current_thread() is not threading.main_thread()
+    ):
+        error_msg = (
+            "automatic termination on host signals is supported only for "
+            "main Python thread"
+        )
+        raise RuntimeError(error_msg)
+
+    if stdin is not None and not isinstance(stdin, InheritStdin):
+        error_msg = "stdin must be None or flnr.INHERIT_STDIN"
+        raise TypeError(error_msg)
+
+    if env is None:
+        env = os.environ.copy()
+
+    stdout_route = _resolve_output_stream_route(stdout_monitors)
+    stderr_route = _resolve_output_stream_route(stderr_monitors)
+    output_stream_targets = _resolve_output_stream_targets(
+        merge_std_streams=merge_std_streams,
+        stdout_route=stdout_route,
+        stderr_route=stderr_route,
+    )
+
+    return _RunnerArgs(
+        cmd=tuple(str(item) for item in cmd),
+        env=env,
+        cwd=cwd,
+        stdout_route=stdout_route,
+        stderr_route=stderr_route,
+        output_stream_targets=output_stream_targets,
+        stdin=stdin,
+        environment_monitors=_freeze_environment_monitors(environment_monitors),
+        check=check,
+        timeouts=timeouts or ExecutionTimeouts(),
+        host_termination=host_termination,
+    )
+
+
+def _trace_command_if_requested(
+    tracer: CommandTracerProtocol | None,
+    args: _RunnerArgs,
+) -> None:
+
+    if tracer is None:
+        return
+
+    if not isinstance(tracer, CommandTracerProtocol):
+        error_msg = (
+            "tracer must be None or implement flnr.CommandTracerProtocol"
+        )
+        raise TypeError(error_msg)
+
+    tracer.trace_command(
+        cmd=args.cmd,
+        cwd=args.cwd,
+        env=args.env,
+        host_env=os.environ.copy(),
+    )
+
+
 async def _run_ex_async(
     args: _RunnerArgs,
 ) -> ProcessFate:
@@ -346,6 +445,7 @@ def run_ex(
     stdin: InheritStdin | None = None,
     check: bool = True,
     host_termination: HostTerminationControlType = None,
+    tracer: CommandTracerProtocol | None = None,
 ) -> ProcessFate:
     """Run an external program as a child process and supervise it.
 
@@ -382,6 +482,12 @@ def run_ex(
     Child stdin is connected to ``DEVNULL`` by default. Pass
     ``stdin=flnr.INHERIT_STDIN`` to inherit stdin from the parent process.
 
+    Pass ``tracer=flnr.CommandTracer(logger)`` to log a shell-oriented command
+    recipe before process creation. Custom tracer objects must implement
+    ``flnr.CommandTracerProtocol`` to receive the command to execute, caller
+    cwd, child environment, and host process environment before the child
+    process is created.
+
     - ``None`` leaves host-driven termination handling disabled.
     - ``HostTerminationRequest.HOST_SIGNALS`` installs temporary SIGINT and
       SIGTERM handlers for the duration of the call. While active, ``flnr``
@@ -395,60 +501,19 @@ def run_ex(
 
     :rtype: ProcessFate
     """
-    try:
-        asyncio.get_running_loop()
-    except RuntimeError:
-        pass
-    else:
-        error_msg = "run_ex() cannot be called from an async context"
-        raise RuntimeError(error_msg)
-
-    if not cmd:
-        error_msg = "cmd must not be empty"
-        raise ValueError(error_msg)
-
-    if isinstance(cmd, (str, bytes, bytearray, memoryview)):
-        error_msg = (
-            "cmd must be a sequence of argument items, not a string-like object"
-        )
-        raise TypeError(error_msg)
-
-    if not _is_host_termination_object(host_termination):
-        error_msg = (
-            f"unexpected type for host_termination object {host_termination}"
-        )
-        raise TypeError(error_msg)
-
-    _validate_host_termination_support(host_termination, sys.platform)
-
-    if (host_termination is HostTerminationRequest.HOST_SIGNALS) and (
-        threading.current_thread() is not threading.main_thread()
-    ):
-        error_msg = (
-            "automatic termination on host signals is supported only for "
-            "main Python thread"
-        )
-        raise RuntimeError(error_msg)
-
-    if stdin is not None and not isinstance(stdin, InheritStdin):
-        error_msg = "stdin must be None or flnr.INHERIT_STDIN"
-        raise TypeError(error_msg)
-
-    if env is None:
-        env = os.environ.copy()
-
-    args = _RunnerArgs(
-        cmd=[str(item) for item in cmd],
+    _ensure_no_running_loop()
+    args = _prepare_runner_args(
+        cmd,
         env=env,
         cwd=cwd,
         merge_std_streams=merge_std_streams,
-        stdout_route=_resolve_output_stream_route(stdout_monitors),
-        stderr_route=_resolve_output_stream_route(stderr_monitors),
+        stdout_monitors=stdout_monitors,
+        stderr_monitors=stderr_monitors,
         stdin=stdin,
-        environment_monitors=_freeze_environment_monitors(environment_monitors),
+        environment_monitors=environment_monitors,
         check=check,
-        timeouts=timeouts or ExecutionTimeouts(),
+        timeouts=timeouts,
         host_termination=host_termination,
     )
-
+    _trace_command_if_requested(tracer, args)
     return asyncio.run(_run_ex_async(args))
