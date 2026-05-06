@@ -110,6 +110,9 @@ The library revolves around a small set of core types and interfaces:
   `flnr.HostTerminationRequest.HOST_SIGNALS` provides an opt-in shortcut that
   temporarily maps host SIGINT/SIGTERM to that request for one `run_ex()` call.
 
+- `flnr.CommandTracerProtocol`: Contract for command recipe tracers.
+  `flnr.CommandTracer` logs shell-oriented command recipes.
+
 ## Design Constraints
 
 `flnr` gets its simplicity from a deliberately narrow execution model. These
