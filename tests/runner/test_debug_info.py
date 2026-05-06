@@ -30,14 +30,16 @@ class _InternalTaskObserver(flnr.EnvironmentMonitor):
         self.term_trigger = flnr.HostTerminationRequest()
 
     def observe(self, _: int) -> None:
-        self.task_names = sorted(
+        all_tasks = asyncio.all_tasks()
+        task_names = sorted(
             [
                 task.get_name()
-                for task in asyncio.all_tasks()
+                for task in all_tasks
                 if task.get_name() in FLNR_TASK_NAMES
             ]
         )
-        if len(self.task_names) == len(FLNR_TASK_NAMES):
+        if len(task_names) == len(FLNR_TASK_NAMES):
+            self.task_names = task_names
             self.term_trigger.trigger()
 
 
@@ -55,8 +57,6 @@ def test_internal_task_debug_names(py_exec: PythonCmdBuilder) -> None:
             check=False,
         )
         assert observer.task_names is not None
-        assert all(
-            observer.task_names.count(item) == 1 for item in FLNR_TASK_NAMES
-        )
+        assert observer.task_names == sorted(FLNR_TASK_NAMES)
     finally:
         observer.term_trigger.close()
