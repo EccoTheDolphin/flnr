@@ -40,6 +40,16 @@ def test_runner_stdin_of_incorrect_type() -> None:
         flnr.run_ex(["/usr/bin/env"], stdin="lalala")  # type: ignore[arg-type]
 
 
+def test_runner_tracer_incorrect_type(py_exec: PythonCmdBuilder) -> None:
+    with pytest.raises(
+        TypeError,
+        match=re.escape(
+            "tracer must be None or implement flnr.CommandTracerProtocol"
+        ),
+    ):
+        flnr.run_ex(py_exec("py_true.py"), tracer=object())  # type: ignore[arg-type]
+
+
 def test_runner_stdout_monitor_incorrect_type(
     py_exec: PythonCmdBuilder,
 ) -> None:
