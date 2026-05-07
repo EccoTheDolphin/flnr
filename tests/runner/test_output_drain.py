@@ -228,6 +228,9 @@ def test_stdout_only_drain(
                 child_tick_delay=1.0,
                 child_tick_count=5,
                 child_termination_delay=2,
+                # note: we need time for the detached child process to write
+                # DESCENDANT_RELEASED_STDO event
+                trace_settle_delay=3,
             )
         ],
         present_events=[

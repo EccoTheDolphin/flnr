@@ -1,5 +1,6 @@
 import io
 import os
+import time
 import warnings
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -29,6 +30,7 @@ class OutputForwardingTimings:
     child_tick_count: int
     child_tick_delay: float
     child_termination_delay: float
+    trace_settle_delay: float | None = None
 
 
 @dataclass
@@ -84,6 +86,10 @@ class OutputForwardingRunner:
             command_error = exc
             fate = exc.fate
         output = bin_output.getvalue().decode(encoding="utf-8")
+        if timing.trace_settle_delay is not None:
+            # Some tests need a pause before checking trace files created
+            # by detached child processes.
+            time.sleep(timing.trace_settle_delay)
         return _OutputForwardingAttempt(
             fate=fate,
             output_probe=output_probe,
