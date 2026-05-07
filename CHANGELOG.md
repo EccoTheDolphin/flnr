@@ -8,6 +8,12 @@ User-facing changes to `flnr` are documented here.
 
 - added command recipe tracing through `flnr.CommandTracerProtocol` and default
   logger-based implementation `flnr.CommandTracer`.
+- integrated `mutmut` as an optional test harness.
+
+### Fixed
+
+- tightened internal typing and test coverage around behavior highlighted by
+  `mutmut`.
 
 ## 0.3.0 - 2026-05-01
 
