@@ -3,8 +3,9 @@ import signal
 import subprocess
 import sys
 import threading
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 
 import pytest
 
@@ -16,6 +17,20 @@ from tests._support.utils import (
 )
 
 
+class _FailingTracerImpl:
+    def trace_command(
+        self,
+        *,
+        cmd: tuple[str, ...],
+        cwd: Path | None,
+        env: Mapping[str, str],
+        host_env: Mapping[str, str],
+    ) -> None:
+        del cmd, cwd, env, host_env
+        error_msg = "logger failed"
+        raise RuntimeError(error_msg)
+
+
 def test_runner_host_signal_no_trigger(py_exec: PythonCmdBuilder) -> None:
     request = flnr.HostTerminationRequest()
     try:
@@ -25,6 +40,23 @@ def test_runner_host_signal_no_trigger(py_exec: PythonCmdBuilder) -> None:
         )
     finally:
         request.close()
+
+
+def test_runner_host_signals_unchanged_when_tracer_fails(
+    py_exec: PythonCmdBuilder,
+) -> None:
+    old_sigint = signal.getsignal(signal.SIGINT)
+    old_sigterm = signal.getsignal(signal.SIGTERM)
+
+    with pytest.raises(RuntimeError, match="logger failed"):
+        flnr.run_ex(
+            py_exec("py_true.py"),
+            host_termination=flnr.HostTerminationRequest.HOST_SIGNALS,
+            tracer=_FailingTracerImpl(),
+        )
+
+    assert signal.getsignal(signal.SIGINT) == old_sigint
+    assert signal.getsignal(signal.SIGTERM) == old_sigterm
 
 
 @dataclass
