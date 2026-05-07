@@ -200,7 +200,7 @@ instances and reported as a `monitor_failures` attribute on the exception.
 
 ### Minimal usage
 
-<!-- readme-sync path="01_simple.py" lang="python" -->
+<!-- readme-sync path="intro_simple.py" lang="python" -->
 
 ```python
 import sys
@@ -235,7 +235,7 @@ already-triggered request will observe termination immediately upon startup.
 This is ideal for applications that manage their own signal handling or need to
 trigger shutdowns coming from external sources.
 
-<!-- readme-sync path="02_host_termination.py" lang="python" -->
+<!-- readme-sync path="intro_host_term.py" lang="python" -->
 
 ```python
 import signal
@@ -267,7 +267,7 @@ For simple CLI scripts that want signal-triggered child termination without
 explicit signal management, `flnr` offers
 `flnr.HostTerminationRequest.HOST_SIGNALS` as a convenience shortcut:
 
-<!-- readme-sync path="03_host_signals.py" lang="python" -->
+<!-- readme-sync path="intro_host_signals.py" lang="python" -->
 
 ```python
 import flnr
@@ -303,7 +303,7 @@ monitor, `flnr.BinaryOutputMonitor` for writing raw byte output, and
 timestamps. The monitors are attached to stdout. They receive the same output
 chunks, but each keeps its own state and writes to its own destination.
 
-<!-- readme-sync path="04_output_mon.py" lang="python" -->
+<!-- readme-sync path="mon_output.py" lang="python" -->
 
 ```python
 import io
@@ -371,7 +371,7 @@ except flnr.CommandFailedError as e:
 An environment monitor that hooks into the child process lifecycle. Extend
 `observe()` to collect system stats (e.g., via ps, /proc, or psutil).
 
-<!-- readme-sync path="05_env_mon.py" lang="python" -->
+<!-- readme-sync path="mon_env.py" lang="python" -->
 
 ```python
 import sys
@@ -417,7 +417,7 @@ Execution exceptions preserve the resolved process state and any monitor
 failures recorded during the run. This example shows a command failure reported
 together with two output monitor failures.
 
-<!-- readme-sync path="06_failure_diagnostics.py" lang="python" -->
+<!-- readme-sync path="failure_diagnostics.py" lang="python" -->
 
 ```python
 import sys
@@ -462,7 +462,7 @@ except flnr.CommandFailedError as exc:
 The rendered exception report includes both the process result and per-monitor
 failure details:
 
-<!-- readme-sync path="06_failure_diagnostics.expected.txt" lang="text" -->
+<!-- readme-sync path="failure_diagnostics.expected.txt" lang="text" -->
 
 ```text
 unexpected return code 42
