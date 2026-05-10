@@ -78,8 +78,10 @@ def test_trigger_double_close() -> None:
     trigger_object.close()
     with pytest.raises(
         OSError, match="HostTerminationRequest is already closed"
-    ):
+    ) as excinfo:
         trigger_object.close()
+    exc = excinfo.value
+    assert str(exc.__cause__) == "calling close on a closed wakeup source"
 
 
 def test_hostsignals_sentinel_serialization() -> None:
@@ -93,8 +95,11 @@ def test_runner_host_control_closed(py_exec: PythonCmdBuilder) -> None:
     request.close()
     with pytest.raises(
         OSError, match="attempting to use closed HostTerminationRequest"
-    ):
+    ) as excinfo:
         flnr.run_ex(py_exec("py_true.py"), host_termination=request)
+
+    exc = excinfo.value
+    assert str(exc.__cause__) == "attempting to use closed wakeup source"
 
 
 def test_runner_host_control_no_trigger(py_exec: PythonCmdBuilder) -> None:
