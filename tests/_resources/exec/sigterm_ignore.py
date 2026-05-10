@@ -1,10 +1,21 @@
 import os
 import signal
 import sys
+import threading
 import time
 
 
+def install_process_timeout(timeout_s: float, exit_code: int = 124) -> None:
+    def exit_process() -> None:
+        os._exit(exit_code)
+
+    timer = threading.Timer(timeout_s, exit_process)
+    timer.daemon = True
+    timer.start()
+
+
 def main() -> None:
+    install_process_timeout(60)
     # Ignore SIGTERM
     signal.signal(signal.SIGTERM, signal.SIG_IGN)
 
