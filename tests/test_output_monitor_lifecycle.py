@@ -1,5 +1,6 @@
-import pytest
 import time
+
+import pytest
 
 import flnr
 from tests._support.probes import OutputMonitorProbe
@@ -14,16 +15,20 @@ class _FailsOnFirstProcessCall(flnr.OutputMonitor):
     def __init__(self) -> None:
         self.process_calls = 0
         self.disable_reason: flnr.OutputMonitorDisableReason | None = None
+        self.last_process_ts: float | None = None
+        self.disabled_ts: float | None = None
 
-    def process(self, _: bytes, __: float) -> None:
+    def process(self, _: bytes, ts: float) -> None:
         self.process_calls += 1
+        self.last_process_ts = ts
         err_msg = "err"
         raise RuntimeError(err_msg)
 
     def on_disable(
-        self, reason: flnr.OutputMonitorDisableReason, _: float
+        self, reason: flnr.OutputMonitorDisableReason, ts: float
     ) -> None:
         self.disable_reason = reason
+        self.disabled_ts = ts
 
 
 def test_failure_disables_monitor_with_error_reason() -> None:
@@ -43,6 +48,9 @@ def test_failure_disables_monitor_with_error_reason() -> None:
     assert exc.monitor_failures[0].hook == flnr.MonitorHook.PROCESS
     assert monitor.process_calls == 1
     assert monitor.disable_reason == flnr.OutputMonitorDisableReason.ERROR
+    assert monitor.last_process_ts is not None
+    assert monitor.disabled_ts is not None
+    assert monitor.disabled_ts >= monitor.last_process_ts
 
 
 def test_stream_failure_disables_active_output_monitors_with_error_reason() -> (
