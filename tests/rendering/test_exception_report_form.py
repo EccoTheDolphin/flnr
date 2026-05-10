@@ -102,3 +102,14 @@ RuntimeError: oops1
 ImportError: oops2"""
     normalized_report = normalize_traceback_report(rendered_report)
     assert normalized_report == expected_report
+
+
+def test_empty_error_report() -> None:
+    rendered_report = _render_structured_exc(
+        monitor_failures=[],
+        internal_exceptions=[],
+    )
+    expected_report = """process execution failure
+fate: returncode=0, decision=no_intervention, method=none"""
+    normalized_report = normalize_traceback_report(rendered_report)
+    assert normalized_report == expected_report
