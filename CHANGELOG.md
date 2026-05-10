@@ -4,6 +4,11 @@ User-facing changes to `flnr` are documented here.
 
 ## Unreleased
 
+### Added
+
+- added command recipe tracing through `flnr.CommandTracerProtocol` and default
+  logger-based implementation `flnr.CommandTracer`.
+
 ## 0.3.0 - 2026-05-01
 
 ### Added
@@ -38,8 +43,8 @@ User-facing changes to `flnr` are documented here.
 
 - removed `supports_host_termination_request()`. Explicit host-side termination
   is now supported through `HostTerminationRequest`.
-- removed `HostTerminationNotSupportedError`; unsupported host-signal binding now
-  fails through normal argument validation.
+- removed `HostTerminationNotSupportedError`; unsupported host-signal binding
+  now fails through normal argument validation.
 
 ## 0.1.0 - 2026-04-24
 
