@@ -39,15 +39,15 @@ async def _resolve_process_fate(
         # group
         process_exit_task = task_ledger.create_task(
             _wait_for_process_exit(process),
-            name="echafaud.process_exit",
+            name="flnr.echafaud.process_exit",
         )
         fatal_reader_error_task = task_ledger.create_task(
             scope.fatal_reader_error.wait(),
-            name="echafaud.fatal_reader_error",
+            name="flnr.echafaud.fatal_reader_error",
         )
         ext_termination_request_task = task_ledger.create_task(
             scope.ext_termination_request.wait(),
-            name="echafaud.ext_termination_request",
+            name="flnr.echafaud.ext_termination_request",
         )
 
         done_tasks, _ = await asyncio.wait(

@@ -9,17 +9,17 @@ from tests._support.utils import PythonCmdBuilder
 # These names are intentionally stable enough to make asyncio task dumps useful
 # during lifecycle debugging.
 FLNR_TASK_NAMES = [
-    "echafaud.ext_termination_request",
-    "echafaud.fatal_reader_error",
-    "echafaud.process_exit",
-    "env_monitor.0",
-    "process_fate",
-    "reader.stderr",
-    "reader.stderr.drain_controller",
-    "reader.stderr.relay",
-    "reader.stdout",
-    "reader.stdout.drain_controller",
-    "reader.stdout.relay",
+    "flnr.echafaud.ext_termination_request",
+    "flnr.echafaud.fatal_reader_error",
+    "flnr.echafaud.process_exit",
+    "flnr.env_monitor.0",
+    "flnr.process_fate",
+    "flnr.reader.stderr",
+    "flnr.reader.stderr.drain_controller",
+    "flnr.reader.stderr.relay",
+    "flnr.reader.stdout",
+    "flnr.reader.stdout.drain_controller",
+    "flnr.reader.stdout.relay",
 ]
 
 
