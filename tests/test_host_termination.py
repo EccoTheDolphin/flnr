@@ -1,7 +1,8 @@
 import asyncio
+import re
 import socket
 import sys
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from typing import NoReturn
 
 import pytest
@@ -137,7 +138,11 @@ def test_runner_host_control_triggered_poll(
             _run_with_rejected_async_loop_reader_attachment(
                 monkeypatch,
                 lambda: flnr.run_ex(
-                    py_exec("cat_dev_random.py"), host_termination=request
+                    py_exec("cat_dev_random.py"),
+                    timeouts=flnr.ExecutionTimeouts(
+                        run=10.0, output_drain=0.01, terminate=1
+                    ),
+                    host_termination=request,
                 ),
             )
         exc = excinfo.value
@@ -223,7 +228,13 @@ def test_runner_host_control_sticky(py_exec: PythonCmdBuilder) -> None:
     try:
         request.trigger()
         with pytest.raises(flnr.CommandFailedError) as excinfo:
-            flnr.run_ex(py_exec("cat_dev_random.py"), host_termination=request)
+            flnr.run_ex(
+                py_exec("cat_dev_random.py"),
+                timeouts=flnr.ExecutionTimeouts(
+                    run=10.0, output_drain=0.01, terminate=1
+                ),
+                host_termination=request,
+            )
         exc = excinfo.value
         assert exc.fate == moirai.fate_external_request_terminate(
             return_code_for_sigterm()
@@ -234,7 +245,7 @@ def test_runner_host_control_sticky(py_exec: PythonCmdBuilder) -> None:
 
 async def _run_in_async_thread_with_trigger(
     py_exec: PythonCmdBuilder,
-) -> Sequence[flnr.ProcessFate | flnr.CommandFailedError | BaseException]:
+) -> flnr.ProcessFate | flnr.CommandFailedError | BaseException:
     request = flnr.HostTerminationRequest()
     t_run = asyncio.to_thread(
         flnr.run_ex,
@@ -242,15 +253,32 @@ async def _run_in_async_thread_with_trigger(
         host_termination=request,
     )
     request.trigger()
-    return await asyncio.gather(t_run, return_exceptions=True)
+    try:
+        return await asyncio.wait_for(t_run, timeout=10.0)
+    finally:
+        request.close()
 
 
 def test_runner_host_termination_trigger_across_threads(
     py_exec: PythonCmdBuilder,
 ) -> None:
-    result = asyncio.run(_run_in_async_thread_with_trigger(py_exec))[0]
-    assert isinstance(result, flnr.CommandFailedError)
-    assert result.fate == moirai.fate_external_request_terminate(
+    with pytest.raises(flnr.CommandFailedError) as excinfo:
+        asyncio.run(_run_in_async_thread_with_trigger(py_exec))
+    assert excinfo.value.fate == moirai.fate_external_request_terminate(
+        return_code_for_sigterm()
+    )
+
+
+def test_runner_host_termination_trigger_across_threads_poller(
+    py_exec: PythonCmdBuilder,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with pytest.raises(flnr.CommandFailedError) as excinfo:
+        _run_with_rejected_async_loop_reader_attachment(
+            monkeypatch,
+            lambda: asyncio.run(_run_in_async_thread_with_trigger(py_exec)),
+        )
+    assert excinfo.value.fate == moirai.fate_external_request_terminate(
         return_code_for_sigterm()
     )
 
@@ -260,7 +288,12 @@ def test_host_signals_windows_unsupported(
 ) -> None:
     if not sys.platform.startswith("win"):
         monkeypatch.setattr(sys, "platform", "win32")
-    with pytest.raises(RuntimeError, match="not supported on Windows"):
+    with pytest.raises(
+        RuntimeError,
+        match=re.escape(
+            "HostTerminationRequest.HOST_SIGNALS is not supported on Windows"
+        ),
+    ):
         flnr.run_ex(
             ["this-command-must-not-run"],
             host_termination=flnr.HostTerminationRequest.HOST_SIGNALS,
