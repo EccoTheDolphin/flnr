@@ -116,7 +116,7 @@ class _PollingWakeupAttachment(HostTerminationAttachment):
         self._event = event
         self._task = loop.create_task(
             self._poll(reader, poll_interval),
-            name="host_termination.poll_socket",
+            name="flnr.host_termination.poll_socket",
         )
 
     async def _poll(self, reader: socket.socket, poll_interval: float) -> None:

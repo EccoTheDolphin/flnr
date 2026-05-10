@@ -118,6 +118,7 @@ class _RunnerScope:
 
     def _create_reader_task(
         self,
+        *,
         sr: asyncio.StreamReader,
         stream_id: OutputStream,
         monitors: tuple[OutputMonitor, ...],
@@ -142,7 +143,7 @@ class _RunnerScope:
     ) -> asyncio.Task[ProcessFate]:
         return self.task_ledger.create_task(
             _resolve_process_fate(process, lifecycle_scope),
-            name="process_fate",
+            name="flnr.process_fate",
         )
 
     def _create_environment_monitor_task(
@@ -157,7 +158,7 @@ class _RunnerScope:
                 monitor_index=monitor_index,
                 scope=scope,
             ),
-            name=f"env_monitor.{monitor_index}",
+            name=f"flnr.env_monitor.{monitor_index}",
         )
 
     async def _ainit(self) -> None:
@@ -169,18 +170,18 @@ class _RunnerScope:
         self.process = await self._start_process()
         if self.process.stdout is not None:
             self.reader_stdout_task = self._create_reader_task(
-                self.process.stdout,
-                OutputStream.STDOUT,
-                self.args.stdout_route.monitors,
-                "reader.stdout",
+                sr=self.process.stdout,
+                stream_id=OutputStream.STDOUT,
+                monitors=self.args.stdout_route.monitors,
+                name="flnr.reader.stdout",
             )
 
         if self.process.stderr is not None:
             self.reader_stderr_task = self._create_reader_task(
-                self.process.stderr,
-                OutputStream.STDERR,
-                self.args.stderr_route.monitors,
-                "reader.stderr",
+                sr=self.process.stderr,
+                stream_id=OutputStream.STDERR,
+                monitors=self.args.stderr_route.monitors,
+                name="flnr.reader.stderr",
             )
 
         self.process_fate_task = self._create_process_fate_task(
