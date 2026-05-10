@@ -1,4 +1,5 @@
 import pytest
+import time
 
 import flnr
 from tests._support.probes import OutputMonitorProbe
@@ -52,6 +53,7 @@ def test_stream_failure_disables_active_output_monitors_with_error_reason() -> (
 
     probe = OutputMonitorProbe(sink=None)
 
+    ts_then = time.monotonic()
     with pytest.raises(flnr.SupervisionFailedError) as excinfo:
         run_descriptor(
             descriptor,
@@ -64,3 +66,5 @@ def test_stream_failure_disables_active_output_monitors_with_error_reason() -> (
     assert isinstance(exc.internal_exceptions[0], _ReaderError)
     assert probe.n_process_calls == 0
     assert probe.stop_reason == flnr.OutputMonitorDisableReason.ERROR
+    assert probe.ts_stop is not None
+    assert probe.ts_stop >= ts_then
