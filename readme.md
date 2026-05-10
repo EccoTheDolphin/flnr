@@ -533,7 +533,9 @@ and linting tools available on PyPI.
 
 Mutation testing, local profile:
 
-```bash
+```
+cd "${PROJECT_DIR}"
 rm -rf mutants
-uv run --group mutation mutmut run --max-children 16
+env COVERAGE_PROCESS_START="${PWD}/pyproject.toml" \
+    uv run --group mutation mutmut run --max-children 16
 ```

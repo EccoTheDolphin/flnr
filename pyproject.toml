@@ -118,7 +118,7 @@ precision = 2
 
 [tool.ruff]
 line-length = 80
-exclude = ["docs"]
+exclude = ["docs", "mutants"]
 
 [tool.ruff.lint]
 select = ["ALL"]
@@ -197,6 +197,7 @@ strict = true
 exclude = [
   '^result/', # Default `nix` output.
   '^docs/', # don't scan sphinx configs
+  '^mutants/', # don't scan mutmut files
 ]
 
 [tool.black] # The tool is not used in a project, this is only for IDE.
