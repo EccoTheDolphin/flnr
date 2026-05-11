@@ -2,8 +2,8 @@ import re
 import signal
 import subprocess
 import sys
-import threading
 from collections.abc import Mapping, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -141,18 +141,19 @@ def test_runner_host_exceptions_sigterm_ignored(termination_type: str) -> None:
 
 
 def _run_flnr_with_hostsignals() -> None:
+    flnr.run_ex(
+        [sys.executable],
+        host_termination=flnr.HostTerminationRequest.HOST_SIGNALS,
+    )
+
+
+def test_runner_host_signals_not_main() -> None:
     expected_err = (
         "automatic termination on host signals is supported only for main "
         "Python thread"
     )
-    with pytest.raises(RuntimeError, match=expected_err):
-        flnr.run_ex(
-            [sys.executable],
-            host_termination=flnr.HostTerminationRequest.HOST_SIGNALS,
-        )
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(_run_flnr_with_hostsignals)
 
-
-def test_runner_host_signals_not_main() -> None:
-    t = threading.Thread(target=_run_flnr_with_hostsignals)
-    t.start()
-    t.join()
+        with pytest.raises(RuntimeError, match=expected_err):
+            future.result(timeout=10)
