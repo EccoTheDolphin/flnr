@@ -9,6 +9,10 @@ import flnr
 # Turns out PIDs are not stable and should not be used for anything aside from
 # logging
 
+if sys.platform.startswith("win32"):
+    print("this experiment is not available on Windows platform at the moment")
+    sys.exit(0)
+
 
 class PMon(flnr.EnvironmentMonitor):
     def __init__(self) -> None:
