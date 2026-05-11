@@ -37,7 +37,10 @@ def test_monitor_failure_produces_error_reason() -> None:
 
     monitor = _FailsOnFirstProcessCall()
 
-    with pytest.raises(flnr.MonitorFailedError) as excinfo:
+    with pytest.raises(
+        flnr.MonitorFailedError,
+        match="monitor failures were detected during the run",
+    ) as excinfo:
         run_descriptor(
             descriptor,
             stdout_monitors=[monitor],
