@@ -37,7 +37,6 @@ class _StreamEventsSink:
             )
             for i, m in enumerate(monitors)
         ]
-        self.monitor_failures = monitor_failures
 
     def on_data(self, data_chunk: bytes, ts: float) -> None:
         for monitor_handle in self.monitor_handles:
