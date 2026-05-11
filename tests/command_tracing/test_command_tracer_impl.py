@@ -244,6 +244,26 @@ def test_selected_missing_env(
     ]
 
 
+def test_selected_several_missing_env(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    assert _logged_command_lines(
+        monkeypatch=monkeypatch,
+        caplog=caplog,
+        platform="linux",
+        cmd=("tool",),
+        env_listing=list_selected_environment(
+            ["FLNR_VISIBLE_ENV", "FLNR_MISSING_ENV1", "FLNR_MISSING_ENV2"]
+        ),
+        child_env={"FLNR_VISIBLE_ENV": "visible"},
+        host_env={},
+    ) == [
+        "env FLNR_VISIBLE_ENV=visible tool",
+        "@ missing env: FLNR_MISSING_ENV1, FLNR_MISSING_ENV2",
+    ]
+
+
 def test_explicit_cwd(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
