@@ -210,6 +210,14 @@ def test_text_encoding(test_resources: Path, encoding: str) -> None:
     assert text_data == string_sink.getvalue()
 
 
+def test_default_encoding() -> None:
+    with (
+        Path(os.devnull).open("w") as null_file,
+    ):
+        log_mon = flnr.TextOutputMonitor(sink=null_file)
+        assert log_mon.encoding == "latin-1"
+
+
 @pytest.mark.parametrize("auto_flush", [True, False])
 def test_autoflush(test_resources: Path, auto_flush: bool) -> None:
     input_file = test_resources / "data" / "default.txt"
@@ -228,6 +236,14 @@ def test_autoflush(test_resources: Path, auto_flush: bool) -> None:
         log_mon.process(b"", 0)
 
         assert spy.call_count == expected_flushes
+
+
+def test_default_autoflush() -> None:
+    with (
+        Path(os.devnull).open("w") as null_file,
+    ):
+        log_mon = flnr.TextOutputMonitor(sink=null_file, encoding="latin-1")
+        assert log_mon.auto_flush
 
 
 @pytest.mark.parametrize("auto_flush", [True, False])
