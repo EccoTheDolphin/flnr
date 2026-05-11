@@ -104,11 +104,16 @@ class OutputForwardingRunner:
         expected_disable_reason: flnr.OutputMonitorDisableReason,
     ) -> None:
         assert attempt.output_probe.stop_reason == expected_disable_reason
+        assert attempt.output_probe.ts_stop is not None
+        assert attempt.output_probe.ts_last_process is not None
         outlines = attempt.output.splitlines()
         assert len(outlines) > 0, "output probe should observe some data"
         assert "first process started: pid=" in outlines[0]
         assert len(outlines) > 1, "output probe should observe child greeting"
         assert "second process started: pid=" in outlines[1]
+        assert (
+            attempt.output_probe.ts_stop >= attempt.output_probe.ts_last_process
+        )
 
     def run_until_trace_shape(
         self,
