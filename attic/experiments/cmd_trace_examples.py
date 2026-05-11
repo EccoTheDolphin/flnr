@@ -74,7 +74,7 @@ old_value = os.environ.get(HIDDEN_STYLE_VAR)
 try:
     os.environ[HIDDEN_STYLE_VAR] = "multiline"
     flnr.run_ex(
-        [sys.executable, PROGRAM_TO_RUN],
+        [sys.executable, PROGRAM_TO_RUN, "arg1", "arg 2"],
         env=os.environ
         | {
             "ENV1": "val1",
