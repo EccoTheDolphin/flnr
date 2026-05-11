@@ -2,7 +2,8 @@ import asyncio
 import re
 import socket
 import sys
-from collections.abc import Callable
+import threading
+from collections.abc import Callable, Sequence
 from typing import NoReturn
 
 import pytest
@@ -243,19 +244,42 @@ def test_runner_host_control_sticky(py_exec: PythonCmdBuilder) -> None:
         request.close()
 
 
+class _SignalOnStart(flnr.EnvironmentMonitor):
+    def __init__(self, event: threading.Event) -> None:
+        super().__init__(period=60.0)
+        self.event = event
+
+    def on_start(self, pid: int, cmd: Sequence[str]) -> None:
+        del pid, cmd
+        self.event.set()
+
+    def observe(self, _: int) -> None:
+        pass
+
+
 async def _run_in_async_thread_with_trigger(
     py_exec: PythonCmdBuilder,
-) -> flnr.ProcessFate | flnr.CommandFailedError | BaseException:
+) -> flnr.ProcessFate:
     request = flnr.HostTerminationRequest()
-    t_run = asyncio.to_thread(
-        flnr.run_ex,
-        py_exec("cat_dev_random.py"),
-        host_termination=request,
+    started_event = threading.Event()
+    t_run = asyncio.create_task(
+        asyncio.to_thread(
+            flnr.run_ex,
+            py_exec("cat_dev_random.py"),
+            host_termination=request,
+            environment_monitors=[_SignalOnStart(started_event)],
+        )
     )
-    request.trigger()
+
     try:
+        t_started = await asyncio.to_thread(started_event.wait, 5.0)
+        assert t_started, "could not confirm subprocess start"
+        request.trigger()
         return await asyncio.wait_for(t_run, timeout=10.0)
     finally:
+        if not t_run.done():
+            t_run.cancel()
+        await asyncio.gather(t_run, return_exceptions=True)
         request.close()
 
 
