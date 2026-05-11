@@ -31,7 +31,7 @@ class _FailsOnFirstProcessCall(flnr.OutputMonitor):
         self.disabled_ts = ts
 
 
-def test_failure_disables_monitor_with_error_reason() -> None:
+def test_monitor_failure_produces_error_reason() -> None:
     descriptor = ExecutionDescriptor(returncode=0, pid=42)
     descriptor.add_stdout_events([b"first", b"second", b""])
 
@@ -53,9 +53,7 @@ def test_failure_disables_monitor_with_error_reason() -> None:
     assert monitor.disabled_ts >= monitor.last_process_ts
 
 
-def test_stream_failure_disables_active_output_monitors_with_error_reason() -> (
-    None
-):
+def test_stream_failure_produces_error_reason() -> None:
     descriptor = ExecutionDescriptor(returncode=0, pid=1)
     descriptor.add_stdout_events([_ReaderError("err")])
 
@@ -74,5 +72,24 @@ def test_stream_failure_disables_active_output_monitors_with_error_reason() -> (
     assert isinstance(exc.internal_exceptions[0], _ReaderError)
     assert probe.n_process_calls == 0
     assert probe.stop_reason == flnr.OutputMonitorDisableReason.ERROR
+    assert probe.ts_stop is not None
+    assert probe.ts_stop >= ts_then
+
+
+def test_normal_lifecycle() -> None:
+    descriptor = ExecutionDescriptor(returncode=0, pid=1)
+    descriptor.add_stdout_events([b"a", b"b", b""])
+
+    probe = OutputMonitorProbe(sink=None)
+
+    ts_then = time.monotonic()
+    run_descriptor(
+        descriptor,
+        stdout_monitors=[probe],
+    )
+
+    expected_number_of_process_calls = 2
+    assert probe.n_process_calls == expected_number_of_process_calls
+    assert probe.stop_reason == flnr.OutputMonitorDisableReason.EOF
     assert probe.ts_stop is not None
     assert probe.ts_stop >= ts_then
