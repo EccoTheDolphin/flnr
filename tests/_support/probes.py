@@ -82,6 +82,7 @@ class OutputMonitorProbe(flnr.OutputMonitor):
         self.ts_last_process: float | None = None
 
     def process(self, data: bytes, ts: float) -> None:
+        assert isinstance(data, bytes)
         assert self.stop_reason is None, "process called after on_disable"
         self.n_process_calls += 1
         self.ts_last_process = ts
