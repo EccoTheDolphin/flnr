@@ -1,5 +1,6 @@
 """PowerShell command rendering."""
 
+import subprocess
 from collections.abc import Mapping
 from pathlib import Path
 
@@ -8,6 +9,10 @@ from flnr.command_tracing.env_listing import EnvListing
 
 def _quote(value: object) -> str:
     return "'" + str(value).replace("'", "''") + "'"
+
+
+def _render_arguments(args: tuple[str, ...]) -> str:
+    return subprocess.list2cmdline(args)
 
 
 def _render_path_assignment(
@@ -88,7 +93,8 @@ def render_recipe(
         _render_assignment(key, value, host_env=host_env)
         for key, value in env_listing.variables
     )
-    lines.extend(f"$psi.ArgumentList.Add({_quote(arg)})" for arg in cmd[1:])
+    if len(cmd) > 1:
+        lines.append(f"$psi.Arguments = {_quote(_render_arguments(cmd[1:]))}")
     lines.extend(
         [
             "$p = [System.Diagnostics.Process]::Start($psi)",
