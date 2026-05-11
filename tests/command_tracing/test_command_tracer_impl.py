@@ -538,7 +538,7 @@ def test_windows_selected_env(
         "  $psi.UseShellExecute = $false",
         "  $psi.WorkingDirectory = (Get-Location).Path",
         "  $psi.Environment['TOOL_PATH'] = 'C:\\Tool Dir\\can''t'",
-        "  $psi.ArgumentList.Add('arg with space')",
+        "  $psi.Arguments = '\"arg with space\"'",
         "  $p = [System.Diagnostics.Process]::Start($psi)",
         "  $p.WaitForExit()",
         "  $p.ExitCode",
@@ -581,7 +581,7 @@ def test_windows_cwd(
         "  $psi.FileName = 'tool.exe'",
         "  $psi.UseShellExecute = $false",
         "  $psi.WorkingDirectory = 'C:\\work dir'",
-        "  $psi.ArgumentList.Add('arg')",
+        "  $psi.Arguments = 'arg'",
         "  $p = [System.Diagnostics.Process]::Start($psi)",
         "  $p.WaitForExit()",
         "  $p.ExitCode",
@@ -618,8 +618,7 @@ def test_windows_removed_env(
         "  [void]$psi.Environment.Remove('REMOVED')",
         "  $psi.Environment['PATH'] = 'C:\\Tool'",
         "  $psi.Environment['QUOTE'] = 'can''t'",
-        "  $psi.ArgumentList.Add('-m')",
-        "  $psi.ArgumentList.Add('build')",
+        "  $psi.Arguments = '-m build'",
         "  $p = [System.Diagnostics.Process]::Start($psi)",
         "  $p.WaitForExit()",
         "  $p.ExitCode",
@@ -720,6 +719,39 @@ def test_windows_clear_env(
         "  $psi.WorkingDirectory = (Get-Location).Path",
         "  $psi.Environment.Clear()",
         "  $psi.Environment['A'] = 'B'",
+        "  $p = [System.Diagnostics.Process]::Start($psi)",
+        "  $p.WaitForExit()",
+        "  $p.ExitCode",
+    ]
+
+
+def test_windows_nontrivial_args(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    expected_arguments = r'"" "arg with space" slash\path\\ quote\"inside'
+    assert _logged_command_lines(
+        monkeypatch=monkeypatch,
+        caplog=caplog,
+        platform="win32",
+        cmd=(
+            "tool.exe",
+            "",
+            "arg with space",
+            r"slash\path\\",
+            'quote"inside',
+        ),
+        env_listing=list_selected_environment(["VISIBLE"]),
+        child_env={"VISIBLE": "visible"},
+        host_env={},
+    ) == [
+        ">",
+        "  $psi = [System.Diagnostics.ProcessStartInfo]::new()",
+        "  $psi.FileName = 'tool.exe'",
+        "  $psi.UseShellExecute = $false",
+        "  $psi.WorkingDirectory = (Get-Location).Path",
+        "  $psi.Environment['VISIBLE'] = 'visible'",
+        f"  $psi.Arguments = '{expected_arguments}'",
         "  $p = [System.Diagnostics.Process]::Start($psi)",
         "  $p.WaitForExit()",
         "  $p.ExitCode",
