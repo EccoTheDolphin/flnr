@@ -140,6 +140,14 @@ def test_output_monitor_rogue_on_data(
     excval = excinfo.value
     assert excval.fate.returncode == 0
     expected_failures_count = 2
+
+    err_msgs = [
+        "[1] stdout monitor #2 (_RogueOutputMonitor) failed in process",
+        "[2] stdout monitor #0 (_RogueOutputMonitor) failed in process",
+    ]
+    for err_msg in err_msgs:
+        assert err_msg in str(excinfo.value)
+
     assert len(excval.monitor_failures) == expected_failures_count
     assert isinstance(
         excval.monitor_failures[0].exception, _OutputMonitorErrorForTestError
@@ -210,6 +218,15 @@ def test_env_monitor_rogue_startup(py_exec: PythonCmdBuilder) -> None:
     expected_message_count = 2
     assert len(outstrings) == expected_message_count
 
+    err_msgs = [
+        (
+            "[1] environment monitor #0 (_EnvMonitorRogueOnStart) "
+            "failed in on_start"
+        )
+    ]
+    for err_msg in err_msgs:
+        assert err_msg in str(excinfo.value)
+
 
 def test_env_monitor_rogue_observe(py_exec: PythonCmdBuilder) -> None:
     output = io.StringIO()
@@ -230,6 +247,15 @@ def test_env_monitor_rogue_observe(py_exec: PythonCmdBuilder) -> None:
     assert outstrings[1].startswith("on start called")
     expected_message_count = 2
     assert len(outstrings) == expected_message_count
+
+    err_msgs = [
+        (
+            "[1] environment monitor #0 (_EnvMonitorRogueObserve) "
+            "failed in observe"
+        )
+    ]
+    for err_msg in err_msgs:
+        assert err_msg in str(excinfo.value)
 
 
 def test_env_monitor_rogue_on_end(py_exec: PythonCmdBuilder) -> None:
@@ -253,6 +279,12 @@ def test_env_monitor_rogue_on_end(py_exec: PythonCmdBuilder) -> None:
     assert outstrings[1].startswith("on start called")
     assert outstrings[2].startswith("observe called")
     assert outstrings[-1].startswith("observe called")
+
+    err_msgs = [
+        "[1] environment monitor #0 (_EnvMonitorRogueOnEnd) failed in on_end",
+    ]
+    for err_msg in err_msgs:
+        assert err_msg in str(excinfo.value)
 
 
 def test_merge_rejects_stderr_monitor(py_exec: PythonCmdBuilder) -> None:
