@@ -10,6 +10,12 @@ _MANDATORY_ENV: dict[str, str] = {}
 if sys.platform.startswith("win32"):
     _MANDATORY_ENV["SYSTEMROOT"] = os.environ["SYSTEMROOT"]
 
+
+def flush_line() -> None:
+    print()
+    sys.stdout.flush()
+
+
 logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger("commands")
@@ -19,7 +25,7 @@ PROGRAM_TO_RUN = "tests/_resources/exec/py_true.py"
 logger.info("--simple command trace---")
 flnr.run_ex([sys.executable, PROGRAM_TO_RUN], tracer=flnr.CommandTracer(logger))
 
-print()
+flush_line()
 logger.info("---trace with PATH and LD_LIBRARY_PATH---")
 flnr.run_ex(
     [sys.executable, Path(PROGRAM_TO_RUN).resolve()],
@@ -29,7 +35,7 @@ flnr.run_ex(
     cwd=Path(tempfile.gettempdir()),
 )
 
-print()
+flush_line()
 logger.info("---trace with changed env---")
 flnr.run_ex(
     [sys.executable, PROGRAM_TO_RUN],
@@ -44,7 +50,7 @@ flnr.run_ex(
     tracer=flnr.CommandTracer.with_changed_environment(logger),
 )
 
-print()
+flush_line()
 logger.info("---trace with cleared env---")
 flnr.run_ex(
     [sys.executable, PROGRAM_TO_RUN],
@@ -61,7 +67,7 @@ flnr.run_ex(
     stderr_monitors=flnr.BIND_TO_PARENT,
 )
 
-print()
+flush_line()
 HIDDEN_STYLE_VAR = "FLNR_INTERNAL_COMMAND_TRACE_STYLE"
 logger.info("---secret mode not available via API---")
 old_value = os.environ.get(HIDDEN_STYLE_VAR)
