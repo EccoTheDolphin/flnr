@@ -161,6 +161,7 @@ def test_descendant_eofs_first(
                 child_tick_delay=1.0,
                 child_tick_count=0,
                 child_termination_delay=0,
+                trace_settle_delay=3,
             )
         ],
         present_events=[
@@ -194,6 +195,7 @@ def test_descendant_exits_during_drain(
                 child_tick_delay=0.2,
                 child_tick_count=5,
                 child_termination_delay=2,
+                trace_settle_delay=3,
             )
         ],
         present_events=[
