@@ -26,11 +26,12 @@ def _logged_message_lines(
     return message.splitlines()
 
 
-def test_command_tracer_uses_posix_recipe_for_selected_environment(
+def test_recipe_selected_env_vars(
     py_exec: PythonCmdBuilder,
     caplog: pytest.LogCaptureFixture,
+    request: pytest.FixtureRequest,
 ) -> None:
-    logger = logging.getLogger("tests.flnr.unix.command_tracer.selected")
+    logger = logging.getLogger(request.node.nodeid)
     caplog.set_level(logging.INFO, logger=logger.name)
     host_env = os.environ.copy()
     child_env = {**host_env, "FLNR_VISIBLE_ENV": "visible"}
@@ -52,11 +53,12 @@ def test_command_tracer_uses_posix_recipe_for_selected_environment(
     ]
 
 
-def test_command_tracer_uses_posix_recipe_by_default(
+def test_recipe_default(
     py_exec: PythonCmdBuilder,
     caplog: pytest.LogCaptureFixture,
+    request: pytest.FixtureRequest,
 ) -> None:
-    logger = logging.getLogger("tests.flnr.unix.command_tracer.default")
+    logger = logging.getLogger(request.node.nodeid)
     caplog.set_level(logging.INFO, logger=logger.name)
     host_env = os.environ.copy()
     child_env = {**host_env, "FLNR_VISIBLE_ENV": "visible"}
@@ -75,11 +77,12 @@ def test_command_tracer_uses_posix_recipe_by_default(
     ]
 
 
-def test_command_tracer_uses_posix_recipe_without_environment(
+def test_recipe_without_environment(
     py_exec: PythonCmdBuilder,
     caplog: pytest.LogCaptureFixture,
+    request: pytest.FixtureRequest,
 ) -> None:
-    logger = logging.getLogger("tests.flnr.unix.command_tracer.none")
+    logger = logging.getLogger(request.node.nodeid)
     caplog.set_level(logging.INFO, logger=logger.name)
     host_env = os.environ.copy()
     child_env = {**host_env, "FLNR_VISIBLE_ENV": "visible"}
@@ -98,11 +101,12 @@ def test_command_tracer_uses_posix_recipe_without_environment(
     ]
 
 
-def test_command_tracer_uses_posix_recipe_for_changed_environment(
+def test_recipe_for_changed_environment(
     py_exec: PythonCmdBuilder,
     caplog: pytest.LogCaptureFixture,
+    request: pytest.FixtureRequest,
 ) -> None:
-    logger = logging.getLogger("tests.flnr.unix.command_tracer.changed")
+    logger = logging.getLogger(request.node.nodeid)
     caplog.set_level(logging.INFO, logger=logger.name)
 
     host_env = os.environ.copy()

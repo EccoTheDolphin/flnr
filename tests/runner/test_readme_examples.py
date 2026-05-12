@@ -14,7 +14,7 @@ from tests._support.utils import (
 )
 
 
-def test_01_simple(test_resources: pathlib.Path) -> None:
+def test_simple(test_resources: pathlib.Path) -> None:
     output = io.StringIO()
     result = flnr.run_ex(
         [
@@ -28,21 +28,21 @@ def test_01_simple(test_resources: pathlib.Path) -> None:
     assert out_lines[-1] == f"{moirai.fate_no_intervention(0)}"
 
 
-def test_02_host_termination(test_resources: pathlib.Path) -> None:
+def test_host_termination(test_resources: pathlib.Path) -> None:
     py_compile.compile(
         str(test_resources / "readme_examples" / "intro_host_term.py"),
         doraise=True,
     )
 
 
-def test_03_host_signals(test_resources: pathlib.Path) -> None:
+def test_host_signals(test_resources: pathlib.Path) -> None:
     py_compile.compile(
         str(test_resources / "readme_examples" / "intro_host_signals.py"),
         doraise=True,
     )
 
 
-def test_04_output_mon(
+def test_output_mon(
     tmp_path: pathlib.Path,
     monkeypatch: pytest.MonkeyPatch,
     test_resources: pathlib.Path,
@@ -65,7 +65,7 @@ def test_04_output_mon(
     assert out_lines[-1] == f"fate: {expected_fate}"
 
 
-def test_05_env_mon(test_resources: pathlib.Path) -> None:
+def test_env_mon(test_resources: pathlib.Path) -> None:
     output = io.StringIO()
     result = flnr.run_ex(
         [sys.executable, test_resources / "readme_examples" / "mon_env.py"],
@@ -79,7 +79,7 @@ def test_05_env_mon(test_resources: pathlib.Path) -> None:
     assert out_lines[-1] == f"fate: {expected_fate}"
 
 
-def test_06_failure_diagnostics(test_resources: pathlib.Path) -> None:
+def test_failure_diagnostics(test_resources: pathlib.Path) -> None:
     expected = (
         (
             test_resources
