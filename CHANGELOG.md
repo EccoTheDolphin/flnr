@@ -4,6 +4,8 @@ User-facing changes to `flnr` are documented here.
 
 ## Unreleased
 
+## 0.4.0 - 2026-05-12
+
 ### Added
 
 - added command recipe tracing through `flnr.CommandTracerProtocol` and default
