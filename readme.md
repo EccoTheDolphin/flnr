@@ -176,6 +176,12 @@ constraints are part of the design, not accidental omissions.
   default. Use `stdin=flnr.INHERIT_STDIN` for interactive commands that should
   read from the parent stdin.
 
+- **Diagnostic command tracing:** The bundled `flnr.CommandTracer` logs
+  shell-oriented command recipes for human inspection, not guaranteed shell
+  replays. Environment variables are omitted by default to reduce accidental
+  secret exposure. Use the API reference for opt-in environment listing modes,
+  or implement `flnr.CommandTracerProtocol` for custom tracing.
+
 ## Error Handling
 
 All execution failures derive from `flnr.ProcessExecutionError`. Every concrete
