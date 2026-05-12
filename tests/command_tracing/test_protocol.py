@@ -56,7 +56,8 @@ def test_run_ex_invokes_tracer_with_execution_context(
     call = tracer.calls[0]
     assert call.cmd == tuple(str(item) for item in path_cmd)
     assert call.cwd == cwd
-    assert call.env is env
+    assert set(call.env) == set(env)
+    assert dict(call.env) == dict(env)
     assert call.host_env == os.environ
     assert call.host_env is not os.environ
 

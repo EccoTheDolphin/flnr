@@ -375,9 +375,6 @@ def _prepare_runner_args(
         error_msg = "stdin must be None or flnr.INHERIT_STDIN"
         raise TypeError(error_msg)
 
-    if env is None:
-        env = os.environ.copy()
-
     stdout_route = _resolve_output_stream_route(stdout_monitors)
     stderr_route = _resolve_output_stream_route(stderr_monitors)
     output_stream_targets = _resolve_output_stream_targets(
@@ -388,7 +385,7 @@ def _prepare_runner_args(
 
     return _RunnerArgs(
         cmd=tuple(str(item) for item in cmd),
-        env=env,
+        env=os.environ.copy() if env is None else dict(env),
         cwd=cwd,
         stdout_route=stdout_route,
         stderr_route=stderr_route,
@@ -418,7 +415,7 @@ def _trace_command_if_requested(
     tracer.trace_command(
         cmd=args.cmd,
         cwd=args.cwd,
-        env=args.env,
+        env=dict(args.env),
         host_env=os.environ.copy(),
     )
 
