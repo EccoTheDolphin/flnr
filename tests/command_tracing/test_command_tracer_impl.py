@@ -66,6 +66,57 @@ def _logged_command_lines(
     return _logged_lines(caplog, logger)
 
 
+def test_with_logger_like_object(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.setattr(sys, "platform", "linux")
+    logger = logging.getLogger("tests.command_tracer.adapter")
+
+    class PrefixedLogger:
+        def log(self, level: int, msg: object) -> None:
+            return logger.log(level, f"prefix: {msg}")
+
+        def isEnabledFor(self, level: int) -> bool:  # noqa: N802
+            return logger.isEnabledFor(level)
+
+    prefixed_logger = PrefixedLogger()
+    tracer = flnr.CommandTracer(prefixed_logger)
+
+    with caplog.at_level(logging.INFO, logger=logger.name):
+        tracer.trace_command(
+            cmd=("tool",),
+            cwd=None,
+            env={},
+            host_env={},
+        )
+
+    assert _logged_lines(caplog, logger) == [
+        "prefix: tool",
+    ]
+
+
+def test_with_stdlib_logger_adapter(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    monkeypatch.setattr(sys, "platform", "linux")
+    logger = logging.getLogger("tests.command_tracer.stdlib_adapter")
+    adapter = logging.LoggerAdapter(logger, extra={})
+    tracer = flnr.CommandTracer(adapter)
+
+    with caplog.at_level(logging.INFO, logger=logger.name):
+        tracer.trace_command(
+            cmd=("tool",),
+            cwd=None,
+            env={},
+            host_env={},
+        )
+
+    assert _logged_lines(caplog, logger) == [
+        "tool",
+    ]
+
+
 def test_disabled_level_skips_recipe(
     caplog: pytest.LogCaptureFixture,
 ) -> None:

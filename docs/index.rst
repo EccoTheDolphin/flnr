@@ -74,6 +74,9 @@ Command Tracing
 .. autoclass:: flnr.CommandTracer
    :members:
 
+.. autoclass:: flnr.command_tracing.LoggerLike
+   :members:
+
 .. autoclass:: flnr.command_tracing.EnvListing
    :members:
 

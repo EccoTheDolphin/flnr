@@ -9,3 +9,4 @@ from .env_listing import (
 from .env_listing import list_selected_environment as list_selected_environment
 from .protocol import CommandTracerProtocol as CommandTracerProtocol
 from .tracer import CommandTracer as CommandTracer
+from .tracer import LoggerLike as LoggerLike
