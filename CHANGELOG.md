@@ -4,6 +4,9 @@ User-facing changes to `flnr` are documented here.
 
 ## Unreleased
 
+- extended `flnr.CommandTracer` to accept `logging.LoggerAdapter` and
+  compatible logger-like objects.
+
 ## 0.4.0 - 2026-05-12
 
 ### Added

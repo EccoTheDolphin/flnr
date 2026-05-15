@@ -4,6 +4,7 @@ import logging
 import sys
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
+from typing import Protocol
 
 from ._render import _render_command_recipe
 from .env_listing import (
@@ -19,6 +20,21 @@ _EnvListingCallable = Callable[
     EnvListing,
 ]
 _DEFAULT_ENV_LISTING = list_no_environment
+
+
+class LoggerLike(Protocol):
+    """Minimal logger interface consumed by CommandTracer.
+
+    Compatible with ``logging.Logger`` and ``logging.LoggerAdapter`` objects.
+    """
+
+    def isEnabledFor(self, level: int) -> bool:  # noqa: N802
+        """Return whether records at the given level would be emitted."""
+        ...
+
+    def log(self, level: int, msg: object) -> None:
+        """Log a record at the given level."""
+        ...
 
 
 class CommandTracer:
@@ -38,16 +54,21 @@ class CommandTracer:
     complete child environment from an empty base. These modes write
     environment variable values to logs, so callers should enable them only for
     values safe to expose in their logging destination.
+
+    The logger object is accepted structurally through ``LoggerLike``.
     """
 
     def __init__(
         self,
-        logger: logging.Logger,
+        logger: LoggerLike,
         *,
         env_listing: _EnvListingCallable = _DEFAULT_ENV_LISTING,
         level: int = logging.INFO,
     ) -> None:
-        """Create a command tracer."""
+        """Create a command tracer.
+
+        The logger is used only through ``isEnabledFor()`` and ``log()``.
+        """
         self._logger = logger
         self._env_listing = env_listing
         self._level = level
@@ -56,7 +77,7 @@ class CommandTracer:
     @classmethod
     def with_changed_environment(
         cls,
-        logger: logging.Logger,
+        logger: LoggerLike,
         *,
         level: int = logging.INFO,
     ) -> "CommandTracer":
@@ -78,7 +99,7 @@ class CommandTracer:
     @classmethod
     def with_selected_environment(
         cls,
-        logger: logging.Logger,
+        logger: LoggerLike,
         variables: Sequence[str],
         *,
         level: int = logging.INFO,
@@ -98,7 +119,7 @@ class CommandTracer:
     @classmethod
     def with_recreated_environment(
         cls,
-        logger: logging.Logger,
+        logger: LoggerLike,
         *,
         level: int = logging.INFO,
     ) -> "CommandTracer":
